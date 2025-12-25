@@ -2,3 +2,4 @@
 
 export const projectId = "hetkbfmltdayxjcjlcow"
 export const publicAnonKey = "sb_publishable_7XpXUAMjoVgaatmMZzfdUg_HXu78hmc"
+export const secretKey = "sb_secret_gO-RB-wiV2pNGEvoD6Ewtw_Z9QOa_Ay"

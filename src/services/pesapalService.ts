@@ -1,14 +1,18 @@
-// Pesapal API 3.0 Integration Service
+// Pesapal API 3.0 Integration Service via Backend Proxy
 // Tanzania Merchant Credentials
 
-const PESAPAL_CONFIG = {
-    consumer_key: 'ngW+UEcnDhltUc5fxPfrCD987xMh3Lx8',
-    consumer_secret: 'q27RChYs5UkypdcNYKzuUw460Dg=',
-    ipn_id: 'c3c20000-d0cd-40ca-9f24-daee228440a6',
-    // Use sandbox for testing, switch to live for production
-    base_url: 'https://cybqa.pesapal.com/pesapalv3', // Sandbox
-    // base_url: 'https://pay.pesapal.com/v3', // Live/Production
-};
+import { projectId, publicAnonKey } from '../../utils/supabase/info';
+
+const PROXY_URL = `https://${projectId}.supabase.co/functions/v1/pesapal-proxy`;
+
+// NOTE: Using the provided API keys, but they return 401 Unauthorized
+// This means the Edge Function MUST be made public (see MAKE_FUNCTION_PUBLIC.md)
+// OR you need to get the real Supabase JWT anon key from your dashboard
+const getHeaders = () => ({
+    'Content-Type': 'application/json',
+    'apikey': publicAnonKey,
+    'Authorization': `Bearer ${publicAnonKey}`,
+});
 
 interface PesapalAuthResponse {
     token: string;
@@ -71,66 +75,20 @@ interface PesapalTransactionStatus {
 }
 
 class PesapalService {
-    private token: string | null = null;
-    private tokenExpiry: Date | null = null;
+    private IPN_ID = 'c3c20000-d0cd-40ca-9f24-daee228440a6';
 
     /**
-     * Get authentication token (valid for 5 minutes)
-     */
-    async getAuthToken(): Promise<string> {
-        // Check if we have a valid token
-        if (this.token && this.tokenExpiry && new Date() < this.tokenExpiry) {
-            return this.token;
-        }
-
-        try {
-            const response = await fetch(`${PESAPAL_CONFIG.base_url}/api/Auth/RequestToken`, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    consumer_key: PESAPAL_CONFIG.consumer_key,
-                    consumer_secret: PESAPAL_CONFIG.consumer_secret,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Authentication failed: ${response.statusText}`);
-            }
-
-            const data: PesapalAuthResponse = await response.json();
-
-            if (data.status !== '200' || !data.token) {
-                throw new Error(data.message || 'Failed to get authentication token');
-            }
-
-            this.token = data.token;
-            this.tokenExpiry = new Date(data.expiryDate);
-
-            return this.token;
-        } catch (error) {
-            console.error('Pesapal authentication error:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Submit order request to Pesapal
+     * Submit order request to Pesapal via backend proxy
      */
     async submitOrder(orderData: PesapalOrderRequest): Promise<PesapalOrderResponse> {
         try {
-            const token = await this.getAuthToken();
-
-            const response = await fetch(`${PESAPAL_CONFIG.base_url}/api/Transactions/SubmitOrderRequest`, {
+            const response = await fetch(PROXY_URL, {
                 method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify(orderData),
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    action: 'submit-order',
+                    orderData,
+                }),
             });
 
             if (!response.ok) {
@@ -151,23 +109,18 @@ class PesapalService {
     }
 
     /**
-     * Get transaction status
+     * Get transaction status via backend proxy
      */
     async getTransactionStatus(orderTrackingId: string): Promise<PesapalTransactionStatus> {
         try {
-            const token = await this.getAuthToken();
-
-            const response = await fetch(
-                `${PESAPAL_CONFIG.base_url}/api/Transactions/GetTransactionStatus?orderTrackingId=${orderTrackingId}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                    },
-                }
-            );
+            const response = await fetch(PROXY_URL, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    action: 'get-status',
+                    orderTrackingId,
+                }),
+            });
 
             if (!response.ok) {
                 throw new Error(`Failed to get transaction status: ${response.statusText}`);
@@ -187,21 +140,16 @@ class PesapalService {
     }
 
     /**
-     * Cancel order
+     * Cancel order via backend proxy
      */
     async cancelOrder(orderTrackingId: string): Promise<{ status: string; message: string }> {
         try {
-            const token = await this.getAuthToken();
-
-            const response = await fetch(`${PESAPAL_CONFIG.base_url}/api/Transactions/CancelOrder`, {
+            const response = await fetch(PROXY_URL, {
                 method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
+                headers: getHeaders(),
                 body: JSON.stringify({
-                    order_tracking_id: orderTrackingId,
+                    action: 'cancel-order',
+                    orderTrackingId,
                 }),
             });
 
@@ -218,19 +166,16 @@ class PesapalService {
     }
 
     /**
-     * Get registered IPN URLs
+     * Get registered IPN URLs via backend proxy
      */
     async getRegisteredIPNs(): Promise<any[]> {
         try {
-            const token = await this.getAuthToken();
-
-            const response = await fetch(`${PESAPAL_CONFIG.base_url}/api/URLSetup/GetIpnList`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
+            const response = await fetch(PROXY_URL, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    action: 'get-ipns',
+                }),
             });
 
             if (!response.ok) {
@@ -266,7 +211,7 @@ class PesapalService {
             description: description || `Order ${orderId}`,
             callback_url: `${window.location.origin}/payment-callback`,
             cancellation_url: `${window.location.origin}/payment-cancelled`,
-            notification_id: PESAPAL_CONFIG.ipn_id,
+            notification_id: this.IPN_ID,
             branch: 'Studio Builder - Online',
             billing_address: {
                 email_address: customerEmail,
