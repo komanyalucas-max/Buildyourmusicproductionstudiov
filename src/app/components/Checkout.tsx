@@ -11,7 +11,11 @@ interface CheckoutProps {
   storageCapacity: number;
   totalStorage: number;
   customerLocation: string;
+  customerName: string;
+  customerEmail: string;
+  totalAmount: number;
   onBack: () => void;
+  onPaymentStart: () => void;
 }
 
 export function Checkout({
@@ -21,9 +25,12 @@ export function Checkout({
   storageCapacity,
   totalStorage,
   customerLocation,
+  customerName,
+  customerEmail,
+  totalAmount,
   onBack,
+  onPaymentStart,
 }: CheckoutProps) {
-  const [customerName, setCustomerName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const formatStorage = (gb: number) => {
@@ -49,18 +56,11 @@ export function Checkout({
   };
 
   const handlePayment = () => {
-    if (!customerName.trim()) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
     setIsProcessing(true);
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      alert('Order placed successfully! Thank you for your purchase.');
-      onBack();
-    }, 2000);
+    // Trigger parent payment flow
+    onPaymentStart();
+    // We don't stop processing here; the parent controls the view/modal
+    setTimeout(() => setIsProcessing(false), 1000);
   };
 
   return (
@@ -72,10 +72,10 @@ export function Checkout({
           className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Studio Builder
+          Back to Order Details
         </button>
-        <h1 className="text-slate-900 mb-2">Checkout</h1>
-        <p className="text-slate-600">Review your order and complete your purchase</p>
+        <h1 className="text-slate-900 mb-2">Review Your Order</h1>
+        <p className="text-slate-600">Please confirm your details before payment</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -151,7 +151,7 @@ export function Checkout({
             </div>
           </div>
 
-          {/* Customer Information */}
+          {/* Customer Information (Read Only) */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
@@ -161,32 +161,26 @@ export function Checkout({
             </div>
 
             <div className="space-y-4">
-              {/* Name Input */}
-              <div>
-                <label htmlFor="name" className="block text-slate-700 mb-2">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Enter your full name"
-                  className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  required
-                />
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-500 text-sm mb-1">Full Name</label>
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-slate-900 font-medium">
+                    {customerName}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-500 text-sm mb-1">Email Address</label>
+                  <p className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-slate-900 font-medium truncate">
+                    {customerEmail}
+                  </p>
+                </div>
               </div>
 
-              {/* Delivery Location */}
               <div>
-                <label htmlFor="location" className="block text-slate-700 mb-2">
-                  Delivery Location
-                </label>
-                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-emerald-600" />
-                    <span className="text-slate-900">{customerLocation}</span>
-                  </div>
+                <label className="block text-slate-500 text-sm mb-1">Delivery Location</label>
+                <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center gap-2 text-emerald-900 font-medium">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
+                  {customerLocation}
                 </div>
               </div>
             </div>
@@ -215,9 +209,12 @@ export function Checkout({
                   <span>1 unit</span>
                 </div>
                 <div className="border-t border-slate-200 pt-4">
-                  <div className="flex justify-between">
-                    <span className="text-slate-900">Total Storage</span>
-                    <span className="text-slate-900">{formatStorage(totalStorage)}</span>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-slate-900">Total Amount</span>
+                    <span className="text-xl font-bold text-slate-900">${totalAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>Includes shipping to {customerLocation}</span>
                   </div>
                 </div>
               </div>
@@ -225,11 +222,11 @@ export function Checkout({
               {/* Pay Button */}
               <button
                 onClick={handlePayment}
-                disabled={isProcessing || !customerName.trim()}
+                disabled={isProcessing}
                 className="w-full py-4 px-6 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <CreditCard className="w-5 h-5" />
-                {isProcessing ? 'Processing...' : 'Complete Order'}
+                {isProcessing ? 'Processing...' : 'Complete Payment'}
               </button>
 
               <p className="text-xs text-slate-500 text-center mt-4">

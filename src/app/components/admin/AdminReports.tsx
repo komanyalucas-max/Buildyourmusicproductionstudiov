@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { kvStore } from '../../../services/kvStore';
-import { Order, Product } from '../../../types';
+import { Order } from '../../../services/orderService';
+import { Product } from '../../../types';
 
 export function AdminReports() {
     const [isExporting, setIsExporting] = useState(false);
@@ -48,7 +49,7 @@ export function AdminReports() {
         if (array.length === 0) return '';
 
         // Collect all unique keys
-        const keys = Array.from(new Set(array.flatMap(Object.keys)));
+        const keys: string[] = Array.from(new Set(array.flatMap((item: any) => Object.keys(item))));
 
         let str = keys.join(',') + '\r\n';
 
@@ -56,17 +57,23 @@ export function AdminReports() {
             let line = '';
             for (const key of keys) {
                 if (line !== '') line += ',';
-                let value = array[i][key];
+                // Explicitly cast to any to allow indexing with string key
+                let value = (array[i] as any)[key];
 
-                // Handle objects/arrays in CSV
-                if (typeof value === 'object') {
-                    value = JSON.stringify(value).replace(/"/g, '""'); // Escape quotes
-                    value = `"${value}"`;
+                if (value === null || value === undefined) {
+                    value = '';
+                } else if (typeof value === 'object') {
+                    // Handle objects: stringify and escape quotes
+                    value = `"${JSON.stringify(value).replace(/"/g, '""')}"`;
                 } else if (typeof value === 'string') {
+                    // Handle strings: escape quotes
                     value = `"${value.replace(/"/g, '""')}"`;
+                } else {
+                    // Handle primitives (numbers, booleans)
+                    value = String(value);
                 }
 
-                line += value !== undefined ? value : '';
+                line += value;
             }
             str += line + '\r\n';
         }

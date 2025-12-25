@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { StudioBuilder } from './components/StudioBuilder';
+import { LocationPage } from './pages/LocationPage';
+import { SummaryPage } from './pages/SummaryPage';
+import { CheckoutPage } from './pages/CheckoutPage';
+import { PaymentCallbackPage } from './pages/PaymentCallbackPage';
+import { PaymentCancelledPage } from './pages/PaymentCancelledPage';
+import { BuilderProvider } from './contexts/BuilderContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { Home, Info, Mail, LayoutDashboard, Shield, Lock, Menu, X } from 'lucide-react';
 import { projectId } from '../../utils/supabase/info';
 import { supabase } from '../utils/supabaseClient';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 
-type View = 'home' | 'about' | 'contact' | 'admin-dashboard';
-
 export default function App() {
-  const [currentView, setCurrentView] = useState<View>('home');
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -30,266 +36,264 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleBackToHome = () => {
-    setCurrentView('home');
-    setIsMobileMenuOpen(false);
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsAdminLoggedIn(false);
-    setCurrentView('home');
+    navigate('/');
     setIsMobileMenuOpen(false);
   };
 
-  const navigateTo = (view: View) => {
-    setCurrentView(view);
-    setIsMobileMenuOpen(false);
-  };
+  const currentPath = location.pathname;
+  const isHome = currentPath === '/';
 
   return (
     <LanguageProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
-        {/* Navigation Header - Only show on non-admin pages */}
-        {currentView !== 'admin-dashboard' && (
-          <>
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-xl border-b border-slate-700/50">
-              <div className="relative">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="flex items-center h-16">
-                    {/* Logo */}
-                    <button
-                      onClick={() => navigateTo('home')}
-                      className="flex items-center gap-2 text-white hover:text-cyan-400 transition-colors"
-                    >
-                      <div className="p-2 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-lg shadow-lg shadow-purple-500/20">
-                        <Home className="w-5 h-5" />
+      <BuilderProvider>
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950">
+          {/* Navigation Header - Only show on non-admin pages */}
+          {currentPath !== '/admin-dashboard' && (
+            <>
+              <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-xl border-b border-slate-700/50">
+                <div className="relative">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center h-16">
+                      {/* Logo */}
+                      <button
+                        onClick={() => navigate('/')}
+                        className="flex items-center gap-2 text-white hover:text-cyan-400 transition-colors"
+                      >
+                        <div className="p-2 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-lg shadow-lg shadow-purple-500/20">
+                          <Home className="w-5 h-5" />
+                        </div>
+                        <span className="font-bold text-lg tracking-tight">Studio Builder</span>
+                      </button>
+
+                      {/* Desktop Navigation Items */}
+                      <div className="hidden md:flex items-center gap-4 lg:gap-6 ml-auto">
+                        <button
+                          onClick={() => navigate('/')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${isHome
+                            ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
+                            }`}
+                        >
+                          <Home className="w-4 h-4" />
+                          <span>Home</span>
+                        </button>
+
+                        <button
+                          onClick={() => navigate('/about')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentPath === '/about'
+                            ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
+                            }`}
+                        >
+                          <Info className="w-4 h-4" />
+                          <span>About</span>
+                        </button>
+
+                        <button
+                          onClick={() => navigate('/contact')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentPath === '/contact'
+                            ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
+                            }`}
+                        >
+                          <Mail className="w-4 h-4" />
+                          <span>Contact</span>
+                        </button>
+
+                        {/* Admin Dashboard Button */}
+                        <button
+                          onClick={() => navigate('/admin-dashboard')}
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/50 rounded-lg text-purple-300 hover:from-purple-500/30 hover:to-cyan-500/30 transition-all hover:shadow-lg hover:shadow-purple-500/10"
+                        >
+                          <LayoutDashboard className="w-4 h-4" />
+                          <span>Admin Dashboard</span>
+                        </button>
                       </div>
-                      <span className="font-bold text-lg tracking-tight">Studio Builder</span>
-                    </button>
+                    </div>
+                  </div>
 
-                    {/* Desktop Navigation Items */}
-                    <div className="hidden md:flex items-center gap-4 lg:gap-6 ml-auto">
+                  {/* Mobile Menu Button - Outside container for guaranteed visibility */}
+                  <button
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className="md:hidden absolute right-4 top-1/2 -translate-y-1/2 p-2.5 text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-600 shadow-lg z-[60]"
+                  >
+                    <Menu className="w-6 h-6" />
+                  </button>
+                </div>
+              </nav>
+
+              {/* Mobile Navigation Drawer */}
+              {isMobileMenuOpen && (
+                <div className="fixed inset-0 z-50 md:hidden">
+                  {/* Overlay */}
+                  <div
+                    className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  />
+
+                  {/* Drawer */}
+                  <div className="absolute right-0 top-0 bottom-0 w-72 bg-slate-900 border-l border-slate-800 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
+                    {/* Drawer Header */}
+                    <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+                      <span className="font-bold text-lg text-white">Menu</span>
                       <button
-                        onClick={() => navigateTo('home')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentView === 'home'
-                          ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Drawer Items */}
+                    <div className="flex-1 p-6 space-y-2 overflow-y-auto">
+                      <button
+                        onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isHome
+                          ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/30 text-white'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                           }`}
                       >
-                        <Home className="w-4 h-4" />
-                        <span>Home</span>
+                        <Home className="w-5 h-5" />
+                        <span className="font-medium">Home</span>
                       </button>
 
                       <button
-                        onClick={() => navigateTo('about')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentView === 'about'
-                          ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
+                        onClick={() => { navigate('/about'); setIsMobileMenuOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentPath === ('/about')
+                          ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/30 text-white'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                           }`}
                       >
-                        <Info className="w-4 h-4" />
-                        <span>About</span>
+                        <Info className="w-5 h-5" />
+                        <span className="font-medium">About</span>
                       </button>
 
                       <button
-                        onClick={() => navigateTo('contact')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentView === 'contact'
-                          ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
+                        onClick={() => { navigate('/contact'); setIsMobileMenuOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentPath === ('/contact')
+                          ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/30 text-white'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                           }`}
                       >
-                        <Mail className="w-4 h-4" />
-                        <span>Contact</span>
+                        <Mail className="w-5 h-5" />
+                        <span className="font-medium">Contact</span>
                       </button>
 
-                      {/* Admin Dashboard Button */}
+                      <div className="my-4 border-t border-slate-800/50" />
+
                       <button
-                        onClick={() => navigateTo('admin-dashboard')}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/50 rounded-lg text-purple-300 hover:from-purple-500/30 hover:to-cyan-500/30 transition-all hover:shadow-lg hover:shadow-purple-500/10"
+                        onClick={() => { navigate('/admin-dashboard'); setIsMobileMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-purple-300 hover:text-white hover:bg-slate-700/50 transition-all font-medium"
                       >
-                        <LayoutDashboard className="w-4 h-4" />
+                        <LayoutDashboard className="w-5 h-5" />
                         <span>Admin Dashboard</span>
                       </button>
                     </div>
+
+                    {/* Drawer Footer */}
+                    <div className="p-6 border-t border-slate-800">
+                      <p className="text-xs text-slate-500 text-center">
+                        © 2024 Studio Builder
+                      </p>
+                    </div>
                   </div>
                 </div>
+              )}
+            </>
+          )}
 
-                {/* Mobile Menu Button - Outside container for guaranteed visibility */}
-                <button
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className="md:hidden absolute right-4 top-1/2 -translate-y-1/2 p-2.5 text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-600 shadow-lg z-[60]"
-                >
-                  <Menu className="w-6 h-6" />
-                </button>
-              </div>
-            </nav>
+          {/* Main Content Info */}
+          <div className={currentPath !== '/admin-dashboard' ? 'pt-16' : ''}>
+            <Routes>
+              <Route path="/" element={<StudioBuilder />} />
+              <Route path="/location" element={<LocationPage />} />
+              <Route path="/summary" element={<SummaryPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/payment-callback" element={<PaymentCallbackPage />} />
+              <Route path="/payment-cancelled" element={<PaymentCancelledPage />} />
 
-            {/* Mobile Navigation Drawer */}
-            {isMobileMenuOpen && (
-              <div className="fixed inset-0 z-50 md:hidden">
-                {/* Overlay */}
-                <div
-                  className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                />
-
-                {/* Drawer */}
-                <div className="absolute right-0 top-0 bottom-0 w-72 bg-slate-900 border-l border-slate-800 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
-                  {/* Drawer Header */}
-                  <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                    <span className="font-bold text-lg text-white">Menu</span>
-                    <button
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* Drawer Items */}
-                  <div className="flex-1 p-6 space-y-2 overflow-y-auto">
-                    <button
-                      onClick={() => navigateTo('home')}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'home'
-                        ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/30 text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                        }`}
-                    >
-                      <Home className="w-5 h-5" />
-                      <span className="font-medium">Home</span>
-                    </button>
-
-                    <button
-                      onClick={() => navigateTo('about')}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'about'
-                        ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/30 text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                        }`}
-                    >
-                      <Info className="w-5 h-5" />
-                      <span className="font-medium">About</span>
-                    </button>
-
-                    <button
-                      onClick={() => navigateTo('contact')}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'contact'
-                        ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/30 text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                        }`}
-                    >
-                      <Mail className="w-5 h-5" />
-                      <span className="font-medium">Contact</span>
-                    </button>
-
-                    <div className="my-4 border-t border-slate-800/50" />
-
-                    <button
-                      onClick={() => navigateTo('admin-dashboard')}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-purple-300 hover:text-white hover:bg-slate-700/50 transition-all font-medium"
-                    >
-                      <LayoutDashboard className="w-5 h-5" />
-                      <span>Admin Dashboard</span>
-                    </button>
-                  </div>
-
-                  {/* Drawer Footer */}
-                  <div className="p-6 border-t border-slate-800">
-                    <p className="text-xs text-slate-500 text-center">
-                      © 2024 Studio Builder
+              <Route path="/about" element={
+                <div className="min-h-screen flex items-center justify-center px-4">
+                  <div className="max-w-3xl mx-auto text-center">
+                    <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-6">
+                      About Studio Builder
+                    </h1>
+                    <p className="text-xl text-slate-300 mb-8">
+                      Studio Builder is your comprehensive solution for building a professional music production setup.
+                      We help you select the perfect combination of software, plugins, and storage to match your creative needs and budget.
                     </p>
+                    <div className="grid md:grid-cols-3 gap-6 mt-12">
+                      <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
+                        <div className="text-4xl mb-4">🎵</div>
+                        <h3 className="text-white font-semibold mb-2">Curated Selection</h3>
+                        <p className="text-slate-400 text-sm">Hand-picked tools for music producers at every level</p>
+                      </div>
+                      <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
+                        <div className="text-4xl mb-4">💾</div>
+                        <h3 className="text-white font-semibold mb-2">Storage Calculator</h3>
+                        <p className="text-slate-400 text-sm">Automatically calculates your storage needs</p>
+                      </div>
+                      <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
+                        <div className="text-4xl mb-4">🚚</div>
+                        <h3 className="text-white font-semibold mb-2">Fast Delivery</h3>
+                        <p className="text-slate-400 text-sm">Ships to Tanzania and neighboring countries</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </>
-        )}
+              } />
 
-        {/* Main Content */}
-        <div className={currentView !== 'admin-dashboard' ? 'pt-16' : ''}>
-          {currentView === 'home' && <StudioBuilder />}
-
-          {currentView === 'about' && (
-            <div className="min-h-screen flex items-center justify-center px-4">
-              <div className="max-w-3xl mx-auto text-center">
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-6">
-                  About Studio Builder
-                </h1>
-                <p className="text-xl text-slate-300 mb-8">
-                  Studio Builder is your comprehensive solution for building a professional music production setup.
-                  We help you select the perfect combination of software, plugins, and storage to match your creative needs and budget.
-                </p>
-                <div className="grid md:grid-cols-3 gap-6 mt-12">
-                  <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-                    <div className="text-4xl mb-4">🎵</div>
-                    <h3 className="text-white font-semibold mb-2">Curated Selection</h3>
-                    <p className="text-slate-400 text-sm">Hand-picked tools for music producers at every level</p>
-                  </div>
-                  <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-                    <div className="text-4xl mb-4">💾</div>
-                    <h3 className="text-white font-semibold mb-2">Storage Calculator</h3>
-                    <p className="text-slate-400 text-sm">Automatically calculates your storage needs</p>
-                  </div>
-                  <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-                    <div className="text-4xl mb-4">🚚</div>
-                    <h3 className="text-white font-semibold mb-2">Fast Delivery</h3>
-                    <p className="text-slate-400 text-sm">Ships to Tanzania and neighboring countries</p>
+              <Route path="/contact" element={
+                <div className="min-h-screen flex items-center justify-center px-4">
+                  <div className="max-w-2xl mx-auto">
+                    <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-6 text-center">
+                      Get In Touch
+                    </h1>
+                    <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8">
+                      <div className="space-y-6">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Name</label>
+                          <input
+                            type="text"
+                            placeholder="Your name"
+                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                          <input
+                            type="email"
+                            placeholder="your.email@example.com"
+                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Message</label>
+                          <textarea
+                            rows={5}
+                            placeholder="How can we help you?"
+                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
+                          />
+                        </div>
+                        <button className="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-xl hover:from-purple-400 hover:to-cyan-400 transition-all shadow-lg shadow-purple-500/50 font-medium">
+                          Send Message
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
+              } />
 
-          {currentView === 'contact' && (
-            <div className="min-h-screen flex items-center justify-center px-4">
-              <div className="max-w-2xl mx-auto">
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-6 text-center">
-                  Get In Touch
-                </h1>
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8">
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Name</label>
-                      <input
-                        type="text"
-                        placeholder="Your name"
-                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
-                      <input
-                        type="email"
-                        placeholder="your.email@example.com"
-                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Message</label>
-                      <textarea
-                        rows={5}
-                        placeholder="How can we help you?"
-                        className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
-                      />
-                    </div>
-                    <button className="w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-xl hover:from-purple-400 hover:to-cyan-400 transition-all shadow-lg shadow-purple-500/50 font-medium">
-                      Send Message
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {currentView === 'admin-dashboard' && (
-            isAdminLoggedIn ? (
-              <AdminDashboard onBackToHome={handleLogout} />
-            ) : (
-              <AdminLogin onLoginSuccess={() => setIsAdminLoggedIn(true)} />
-            )
-          )}
+              <Route path="/admin-dashboard" element={
+                isAdminLoggedIn ? <AdminDashboard onBackToHome={handleLogout} /> : <AdminLogin onLoginSuccess={() => setIsAdminLoggedIn(true)} />
+              } />
+            </Routes>
+          </div>
         </div>
-      </div>
+      </BuilderProvider>
     </LanguageProvider>
   );
 }

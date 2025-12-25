@@ -1,15 +1,13 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Music, Wand2, Sliders, Library, Sparkles, Calculator, ChevronDown, Plus, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Music, Wand2, Sliders, Library, Sparkles, Calculator, ChevronDown, Check } from 'lucide-react';
 import { CostSummary } from './CostSummary';
-import { StorageSelector, StorageType } from './StorageSelector';
-import { Checkout } from './Checkout';
-import { PriceCalculation } from './PriceCalculation';
-import { LocationSelection } from './LocationSelection';
+import { StorageSelector } from './StorageSelector';
 import { LanguageCurrencySelector } from './LanguageCurrencySelector';
 import { useLanguage } from '../contexts/LanguageContext';
-import { kvStore } from '../../services/kvStore';
-import type { Product as DBProduct, Category as DBCategory } from '../../types';
+import { useBuilder } from '../contexts/BuilderContext';
 
+// Re-export types for compatibility with other components
 export interface LibraryPack {
   id: string;
   name: string;
@@ -37,83 +35,46 @@ export interface Category {
   helperText?: string;
 }
 
-const getIconForCategory = (iconName?: string) => {
+// Helper to get React Node icon
+const getIconForCategory = (iconName: string | any) => {
+  if (typeof iconName !== 'string') return iconName; // If already a component
   const iconMap: Record<string, React.ReactNode> = {
     'Music': <Music className="w-5 h-5" />,
     'Wand2': <Wand2 className="w-5 h-5" />,
     'Sliders': <Sliders className="w-5 h-5" />,
     'Library': <Library className="w-5 h-5" />,
   };
-  return iconMap[iconName || 'Library'] || <Library className="w-5 h-5" />;
+  return iconMap[iconName] || <Library className="w-5 h-5" />;
 };
 
 export function StudioBuilder() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [selectedLibraryPacks, setSelectedLibraryPacks] = useState<Set<string>>(new Set());
-  const [storageType, setStorageType] = useState<StorageType>(null);
-  const [storageCapacity, setStorageCapacity] = useState<number | null>(null);
-  const [customerLocation, setCustomerLocation] = useState<string>('');
-  const [showLocationSelection, setShowLocationSelection] = useState(false);
-  const [showPriceCalculation, setShowPriceCalculation] = useState(false);
-  const [isCheckout, setIsCheckout] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
   const { t } = useLanguage();
 
+  // Use Context
+  const {
+    categories,
+    isLoading,
+    error,
+    selectedItems,
+    selectedLibraryPacks,
+    storageType,
+    storageCapacity,
+    totalStorage,
+    toggleItem,
+    setStorageType,
+    setStorageCapacity,
+    selectFreeStudio
+  } = useBuilder();
+
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  // Initialize expanded categories when data loads
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const [categoriesData, productsData] = await Promise.all([
-          kvStore.listByPrefix<DBCategory>('category:'),
-          kvStore.listByPrefix<DBProduct>('product:')
-        ]);
-
-        const dbCategories = categoriesData.map(c => c.value).sort((a, b) => a.order - b.order);
-        const dbProducts = productsData.map(p => p.value);
-
-        const transformedCategories: Category[] = dbCategories.map(cat => {
-          const categoryProducts = dbProducts
-            .filter(p => p.category_id === cat.id)
-            .map(p => ({
-              id: p.id,
-              name: p.name,
-              description: p.description,
-              fileSize: p.file_size,
-              isFree: p.is_free,
-              libraryPacks: [],
-              image: undefined
-            }));
-
-          return {
-            id: cat.id,
-            title: cat.name,
-            subtitle: cat.description,
-            icon: getIconForCategory(cat.icon),
-            products: categoryProducts,
-            helperText: cat.helper_text
-          };
-        });
-
-        setCategories(transformedCategories);
-        // Expand first category by default
-        if (transformedCategories.length > 0) {
-          setExpandedCategories(new Set([transformedCategories[0].id]));
-        }
-      } catch (err) {
-        console.error('Failed to fetch data:', err);
-        setError('Failed to load products. Please refresh the page.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+    if (categories.length > 0 && expandedCategories.size === 0) {
+      setExpandedCategories(new Set([categories[0].id]));
+    }
+  }, [categories, expandedCategories.size]);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => {
@@ -125,60 +86,6 @@ export function StudioBuilder() {
       }
       return newSet;
     });
-  };
-
-  const toggleItem = (productId: string) => {
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(productId)) {
-        newSet.delete(productId);
-      } else {
-        newSet.add(productId);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleLibraryPack = (packId: string) => {
-    setSelectedLibraryPacks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(packId)) {
-        newSet.delete(packId);
-      } else {
-        newSet.add(packId);
-      }
-      return newSet;
-    });
-  };
-
-  const totalStorage = useMemo(() => {
-    let total = 0;
-    categories.forEach(category => {
-      category.products.forEach(product => {
-        if (selectedItems.has(product.id)) {
-          total += product.fileSize;
-          product.libraryPacks?.forEach(pack => {
-            if (selectedLibraryPacks.has(pack.id)) {
-              total += pack.fileSize;
-            }
-          });
-        }
-      });
-    });
-    return total;
-  }, [categories, selectedItems, selectedLibraryPacks]);
-
-  const selectFreeStudio = () => {
-    const freeItems = new Set<string>();
-    categories.forEach(category => {
-      category.products.forEach(product => {
-        if (product.isFree) {
-          freeItems.add(product.id);
-        }
-      });
-    });
-    setSelectedItems(freeItems);
-    setSelectedLibraryPacks(new Set());
   };
 
   const formatStorage = (gb: number) => {
@@ -267,7 +174,9 @@ export function StudioBuilder() {
                     className="w-full p-4 flex items-center gap-3 hover:bg-slate-700/30 transition-colors"
                   >
                     <div className="p-2 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-xl border border-purple-500/30 flex-shrink-0">
-                      <div className="text-purple-300">{category.icon}</div>
+                      <div className="text-purple-300">
+                        {typeof category.icon === 'string' ? getIconForCategory(category.icon) : category.icon}
+                      </div>
                     </div>
                     <div className="flex-1 min-w-0 text-left">
                       <h2 className="text-white font-bold text-lg">{category.title}</h2>
@@ -351,8 +260,8 @@ export function StudioBuilder() {
                 categories={categories}
                 totalStorage={totalStorage}
                 storageType={storageType}
-                storageCapacity={storageCapacity}
-                onCalculate={() => setShowLocationSelection(true)}
+                storageCapacity={storageCapacity || 0}
+                onCalculate={() => navigate('/location')}
               />
             </div>
           </div>
@@ -367,7 +276,7 @@ export function StudioBuilder() {
             <p className="text-lg font-bold text-white">{formatStorage(totalStorage)}</p>
           </div>
           <button
-            onClick={() => setShowLocationSelection(true)}
+            onClick={() => navigate('/location')}
             className="px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-xl hover:from-purple-400 hover:to-cyan-400 transition-all shadow-lg font-semibold flex items-center gap-2"
           >
             <Calculator className="w-4 h-4" />
@@ -375,88 +284,6 @@ export function StudioBuilder() {
           </button>
         </div>
       </div>
-
-      {/* Modals */}
-      {showLocationSelection && (
-        <LocationSelection
-          onClose={() => setShowLocationSelection(false)}
-          onLocationSelected={(location) => {
-            setCustomerLocation(location);
-            setShowLocationSelection(false);
-            setShowPriceCalculation(true);
-          }}
-        />
-      )}
-
-      {showPriceCalculation && (() => {
-        // Convert selected IDs to actual Product objects
-        const selectedProductObjects: Product[] = [];
-        const selectedLibraryPackObjects: LibraryPack[] = [];
-
-        categories.forEach(category => {
-          category.products.forEach(product => {
-            if (selectedItems.has(product.id)) {
-              selectedProductObjects.push(product);
-
-              // Also collect selected library packs for this product
-              product.libraryPacks?.forEach(pack => {
-                if (selectedLibraryPacks.has(pack.id)) {
-                  selectedLibraryPackObjects.push(pack);
-                }
-              });
-            }
-          });
-        });
-
-        return (
-          <PriceCalculation
-            selectedProducts={selectedProductObjects}
-            selectedLibraryPacks={selectedLibraryPackObjects}
-            storageType={storageType}
-            storageCapacity={storageCapacity || 0}
-            totalStorage={totalStorage}
-            customerLocation={customerLocation}
-            onContinueToCheckout={() => {
-              setShowPriceCalculation(false);
-              setIsCheckout(true);
-            }}
-            onBack={() => setShowPriceCalculation(false)}
-          />
-        );
-      })()}
-
-      {isCheckout && (() => {
-        // Convert selected IDs to actual Product objects
-        const selectedProductObjects: Product[] = [];
-        const selectedLibraryPackObjects: LibraryPack[] = [];
-
-        categories.forEach(category => {
-          category.products.forEach(product => {
-            if (selectedItems.has(product.id)) {
-              selectedProductObjects.push(product);
-
-              // Also collect selected library packs for this product
-              product.libraryPacks?.forEach(pack => {
-                if (selectedLibraryPacks.has(pack.id)) {
-                  selectedLibraryPackObjects.push(pack);
-                }
-              });
-            }
-          });
-        });
-
-        return (
-          <Checkout
-            selectedProducts={selectedProductObjects}
-            selectedLibraryPacks={selectedLibraryPackObjects}
-            storageType={storageType}
-            storageCapacity={storageCapacity || 0}
-            totalStorage={totalStorage}
-            customerLocation={customerLocation}
-            onBack={() => setIsCheckout(false)}
-          />
-        );
-      })()}
     </div>
   );
 }

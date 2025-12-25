@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { OrderList } from './OrderList';
-import { Order } from '../../../types';
-import { kvStore } from '../../../services/kvStore';
+import { orderService, Order } from '../../../services/orderService';
 
 export function AdminOrders() {
     const [orders, setOrders] = useState<Order[]>([]);
@@ -10,9 +9,8 @@ export function AdminOrders() {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const ordersData = await kvStore.listByPrefix<Order>('order:');
-            // Sort by date desc
-            setOrders(ordersData.map(d => d.value).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+            const ordersData = await orderService.getAllOrders();
+            setOrders(ordersData);
         } catch (error) {
             console.error('Failed to fetch orders:', error);
         } finally {

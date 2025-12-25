@@ -12,7 +12,7 @@ interface PriceCalculationProps {
   storageCapacity: number;
   totalStorage: number;
   customerLocation: string;
-  onContinueToCheckout: () => void;
+  onContinueToCheckout: (details: { name: string; email: string; totalAmount: number }) => void;
   onBack: () => void;
 }
 
@@ -229,8 +229,12 @@ export function PriceCalculation({
       return;
     }
 
-    // Proceed with checkout
-    onContinueToCheckout();
+    // Proceed with checkout passing details
+    onContinueToCheckout({
+      name: customerName,
+      email: customerEmail,
+      totalAmount: total
+    });
   };
 
   const formatStorage = (gb: number) => {
