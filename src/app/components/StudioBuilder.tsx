@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Music, Wand2, Sliders, Library, Sparkles, Calculator } from 'lucide-react';
-import { ProductSection } from './ProductSection';
+import { Music, Wand2, Sliders, Library, Sparkles, Calculator, ChevronDown, Plus, Check } from 'lucide-react';
 import { CostSummary } from './CostSummary';
 import { StorageSelector, StorageType } from './StorageSelector';
 import { Checkout } from './Checkout';
@@ -15,7 +14,7 @@ export interface LibraryPack {
   id: string;
   name: string;
   description: string;
-  fileSize: number; // Size in GB
+  fileSize: number;
   image?: string;
 }
 
@@ -23,7 +22,7 @@ export interface Product {
   id: string;
   name: string;
   description: string;
-  fileSize: number; // Size in GB
+  fileSize: number;
   isFree?: boolean;
   libraryPacks?: LibraryPack[];
   image?: string;
@@ -38,7 +37,6 @@ export interface Category {
   helperText?: string;
 }
 
-// Icon mapping for categories
 const getIconForCategory = (iconName?: string) => {
   const iconMap: Record<string, React.ReactNode> = {
     'Music': <Music className="w-5 h-5" />,
@@ -61,9 +59,9 @@ export function StudioBuilder() {
   const [showLocationSelection, setShowLocationSelection] = useState(false);
   const [showPriceCalculation, setShowPriceCalculation] = useState(false);
   const [isCheckout, setIsCheckout] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const { t } = useLanguage();
 
-  // Fetch categories and products from database
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -75,11 +73,9 @@ export function StudioBuilder() {
           kvStore.listByPrefix<DBProduct>('product:')
         ]);
 
-        // Transform database data to UI format
         const dbCategories = categoriesData.map(c => c.value).sort((a, b) => a.order - b.order);
         const dbProducts = productsData.map(p => p.value);
 
-        // Group products by category
         const transformedCategories: Category[] = dbCategories.map(cat => {
           const categoryProducts = dbProducts
             .filter(p => p.category_id === cat.id)
@@ -89,7 +85,7 @@ export function StudioBuilder() {
               description: p.description,
               fileSize: p.file_size,
               isFree: p.is_free,
-              libraryPacks: [], // TODO: Add library packs support from database
+              libraryPacks: [],
               image: undefined
             }));
 
@@ -99,14 +95,18 @@ export function StudioBuilder() {
             subtitle: cat.description,
             icon: getIconForCategory(cat.icon),
             products: categoryProducts,
-            helperText: cat.helper_text || undefined
+            helperText: cat.helper_text
           };
         });
 
         setCategories(transformedCategories);
+        // Expand first category by default
+        if (transformedCategories.length > 0) {
+          setExpandedCategories(new Set([transformedCategories[0].id]));
+        }
       } catch (err) {
-        console.error('Failed to load data:', err);
-        setError('Failed to load products. Please try refreshing the page.');
+        console.error('Failed to fetch data:', err);
+        setError('Failed to load products. Please refresh the page.');
       } finally {
         setIsLoading(false);
       }
@@ -115,22 +115,23 @@ export function StudioBuilder() {
     fetchData();
   }, []);
 
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
   const toggleItem = (productId: string) => {
-    setSelectedItems((prev) => {
+    setSelectedItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(productId)) {
         newSet.delete(productId);
-        // Also remove all library packs for this product
-        const product = categories
-          .flatMap((cat) => cat.products)
-          .find((p) => p.id === productId);
-        if (product?.libraryPacks) {
-          setSelectedLibraryPacks((prevPacks) => {
-            const newPacks = new Set(prevPacks);
-            product.libraryPacks!.forEach((pack) => newPacks.delete(pack.id));
-            return newPacks;
-          });
-        }
       } else {
         newSet.add(productId);
       }
@@ -139,7 +140,7 @@ export function StudioBuilder() {
   };
 
   const toggleLibraryPack = (packId: string) => {
-    setSelectedLibraryPacks((prev) => {
+    setSelectedLibraryPacks(prev => {
       const newSet = new Set(prev);
       if (newSet.has(packId)) {
         newSet.delete(packId);
@@ -150,260 +151,312 @@ export function StudioBuilder() {
     });
   };
 
-  const selectFreeStudio = () => {
-    const freeProducts = categories
-      .flatMap((cat) => cat.products)
-      .filter((p) => p.isFree)
-      .map((p) => p.id);
-    setSelectedItems(new Set(freeProducts));
-    setSelectedLibraryPacks(new Set()); // Clear library packs when using free studio
-  };
-
   const totalStorage = useMemo(() => {
-    let storage = 0;
-
-    categories.forEach((category) => {
-      category.products.forEach((product) => {
+    let total = 0;
+    categories.forEach(category => {
+      category.products.forEach(product => {
         if (selectedItems.has(product.id)) {
-          storage += product.fileSize;
-          // Add selected library packs
-          if (product.libraryPacks) {
-            product.libraryPacks.forEach((pack) => {
-              if (selectedLibraryPacks.has(pack.id)) {
-                storage += pack.fileSize;
-              }
-            });
-          }
-        }
-      });
-    });
-
-    return storage;
-  }, [selectedItems, selectedLibraryPacks]);
-
-  const canCalculatePrice =
-    selectedItems.size > 0 &&
-    storageType !== null &&
-    storageCapacity !== null &&
-    storageCapacity >= totalStorage;
-
-  const getSelectedProducts = () => {
-    return categories
-      .flatMap((cat) => cat.products)
-      .filter((p) => selectedItems.has(p.id));
-  };
-
-  const getSelectedLibraryPacksData = () => {
-    const packs: LibraryPack[] = [];
-    categories.forEach((category) => {
-      category.products.forEach((product) => {
-        if (product.libraryPacks && selectedItems.has(product.id)) {
-          product.libraryPacks.forEach((pack) => {
+          total += product.fileSize;
+          product.libraryPacks?.forEach(pack => {
             if (selectedLibraryPacks.has(pack.id)) {
-              packs.push(pack);
+              total += pack.fileSize;
             }
           });
         }
       });
     });
-    return packs;
+    return total;
+  }, [categories, selectedItems, selectedLibraryPacks]);
+
+  const selectFreeStudio = () => {
+    const freeItems = new Set<string>();
+    categories.forEach(category => {
+      category.products.forEach(product => {
+        if (product.isFree) {
+          freeItems.add(product.id);
+        }
+      });
+    });
+    setSelectedItems(freeItems);
+    setSelectedLibraryPacks(new Set());
   };
 
-  // Show checkout view
-  if (isCheckout && storageCapacity !== null && storageType !== null && customerLocation) {
+  const formatStorage = (gb: number) => {
+    if (gb < 1) return `${(gb * 1024).toFixed(0)} MB`;
+    return `${gb.toFixed(1)} GB`;
+  };
+
+  const stripHtml = (html: string | undefined) => {
+    if (!html) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  };
+
+  if (isLoading) {
     return (
-      <Checkout
-        selectedProducts={getSelectedProducts()}
-        selectedLibraryPacks={getSelectedLibraryPacksData()}
-        storageType={storageType}
-        storageCapacity={storageCapacity}
-        totalStorage={totalStorage}
-        customerLocation={customerLocation}
-        onBack={() => setIsCheckout(false)}
-      />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading...</p>
+        </div>
+      </div>
     );
   }
 
-  // Show price calculation view
-  if (showPriceCalculation && storageCapacity !== null && storageType !== null && customerLocation) {
+  if (error) {
     return (
-      <PriceCalculation
-        selectedProducts={getSelectedProducts()}
-        selectedLibraryPacks={getSelectedLibraryPacksData()}
-        storageType={storageType}
-        storageCapacity={storageCapacity}
-        totalStorage={totalStorage}
-        customerLocation={customerLocation}
-        onContinueToCheckout={() => {
-          setShowPriceCalculation(false);
-          setIsCheckout(true);
-        }}
-        onBack={() => setShowPriceCalculation(false)}
-      />
-    );
-  }
-
-  // Show location selection view
-  if (showLocationSelection) {
-    return (
-      <LocationSelection
-        onLocationSelected={(location) => {
-          setCustomerLocation(location);
-          setShowLocationSelection(false);
-          setShowPriceCalculation(true);
-        }}
-        onBack={() => setShowLocationSelection(false)}
-      />
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 max-w-md text-center">
+          <p className="text-red-300 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 md:py-12">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-      </div>
-
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] relative z-10">
-          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-slate-300 text-lg">Loading products...</p>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && !isLoading && (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] relative z-10">
-          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 max-w-md text-center">
-            <p className="text-red-300 text-lg mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content - Only show when not loading and no error */}
-      {!isLoading && !error && (
-        <>
-          {/* Compact Header */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6 relative z-10 border-b border-slate-700/30 pb-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="inline-flex items-center gap-2 px-2 py-0.5 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-full">
-                  <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-                  <span className="text-cyan-300 text-[10px] font-medium tracking-wide uppercase">AI-Powered Studio</span>
-                </div>
+    <div className="min-h-screen pb-24 lg:pb-8">
+      {/* Hero Section - Compact */}
+      <div className="bg-gradient-to-br from-slate-900/50 to-slate-800/50 border-b border-slate-700/50 mb-4">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                <span className="text-cyan-300 text-xs font-medium uppercase tracking-wide">AI-Powered Studio</span>
               </div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">
                 {t('app.title')}
               </h1>
-              <p className="text-slate-400 text-xs md:text-sm hidden sm:block max-w-xl text-balance">
+              <p className="text-slate-400 text-sm hidden sm:block">
                 {t('app.subtitle')}
               </p>
             </div>
-
-            <div className="flex items-center gap-3 self-end lg:self-center">
+            <div className="flex items-center gap-3">
               <button
                 onClick={selectFreeStudio}
-                className="group relative inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-xl hover:from-cyan-400 hover:to-purple-500 transition-all shadow-lg shadow-purple-500/20 active:scale-95"
+                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded-lg hover:from-cyan-400 hover:to-purple-500 transition-all shadow-lg text-sm font-semibold flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4 text-white" />
-                <span className="text-white font-semibold text-sm">Free Starter</span>
+                <Sparkles className="w-4 h-4" />
+                Free Starter
               </button>
               <LanguageCurrencySelector />
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="grid lg:grid-cols-3 gap-8 relative z-10">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-4">
-              {categories.map((category, index) => (
-                <ProductSection
-                  key={category.id}
-                  category={category}
-                  selectedItems={selectedItems}
-                  onToggleItem={toggleItem}
-                  selectedLibraryPacks={selectedLibraryPacks}
-                  onToggleLibraryPack={toggleLibraryPack}
-                  defaultExpanded={index === 0}
-                />
-              ))}
-            </div>
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Products Section */}
+          <div className="lg:col-span-2 space-y-3">
+            {categories.map((category) => {
+              const isExpanded = expandedCategories.has(category.id);
 
-            {/* Sidebar - Storage Selection & Summary */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-6 space-y-6">
-                <div id="storage-selector">
-                  <StorageSelector
-                    selectedType={storageType}
-                    selectedCapacity={storageCapacity}
-                    onTypeChange={setStorageType}
-                    onCapacityChange={setStorageCapacity}
-                  />
-                </div>
-                <CostSummary
-                  totalStorage={totalStorage}
-                  storageCapacity={storageCapacity}
-                  storageType={storageType}
-                />
-
-                {/* Calculate Price Button */}
-                {canCalculatePrice && (
+              return (
+                <div key={category.id} className="bg-slate-800/40 rounded-2xl border border-slate-700/50 overflow-hidden">
+                  {/* Category Header */}
                   <button
-                    onClick={() => setShowLocationSelection(true)}
-                    className="group relative w-full py-5 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl hover:from-emerald-400 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/70 hover:scale-105"
+                    onClick={() => toggleCategory(category.id)}
+                    className="w-full p-4 flex items-center gap-3 hover:bg-slate-700/30 transition-colors"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-                    <div className="relative z-10 flex items-center justify-center gap-3">
-                      <Calculator className="w-6 h-6 text-white" />
-                      <span className="text-white font-semibold text-lg">Calculate Price</span>
+                    <div className="p-2 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-xl border border-purple-500/30 flex-shrink-0">
+                      <div className="text-purple-300">{category.icon}</div>
                     </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <h2 className="text-white font-bold text-lg">{category.title}</h2>
+                      <p className="text-slate-400 text-sm line-clamp-1">{stripHtml(category.subtitle)}</p>
+                    </div>
+                    <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                   </button>
-                )}
-              </div>
-            </div>
+
+                  {/* Products List */}
+                  {isExpanded && (
+                    <div className="p-4 pt-0 space-y-2">
+                      {category.products.map((product) => {
+                        const isSelected = selectedItems.has(product.id);
+
+                        return (
+                          <label
+                            key={product.id}
+                            className={`block p-3 rounded-xl cursor-pointer transition-all ${isSelected
+                              ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border-2 border-purple-500/50'
+                              : 'bg-slate-800/50 border-2 border-transparent hover:border-slate-600/50'
+                              }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 pt-0.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleItem(product.id)}
+                                  className="sr-only"
+                                />
+                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isSelected
+                                  ? 'bg-gradient-to-br from-purple-500 to-cyan-500 border-transparent'
+                                  : 'border-slate-600'
+                                  }`}>
+                                  {isSelected && <Check className="w-3 h-3 text-white" />}
+                                </div>
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <h3 className="text-white font-medium text-sm">{product.name}</h3>
+                                  {product.isFree && (
+                                    <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs rounded-full">
+                                      FREE
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-slate-400 text-xs line-clamp-2">{stripHtml(product.description)}</p>
+                              </div>
+
+                              <div className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-bold ${isSelected
+                                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                                : 'bg-slate-700/50 text-slate-300'
+                                }`}>
+                                {formatStorage(product.fileSize)}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {/* Mobile Sticky Action Bar */}
-          <div className="lg:hidden fixed bottom-6 left-4 right-4 p-4 bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 z-50 animate-in slide-in-from-bottom-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <p className="text-xs text-slate-400 mb-1">Total Storage</p>
-                <p className="text-lg font-bold text-white flex items-center gap-2">
-                  <span className={storageCapacity && totalStorage > storageCapacity ? 'text-red-400' : 'text-cyan-400'}>
-                    {totalStorage < 1 ? (totalStorage * 1024).toFixed(0) + ' MB' : totalStorage.toFixed(1) + ' GB'}
-                  </span>
-                  {storageCapacity && (
-                    <span className="text-sm text-slate-500 font-normal">/ {storageCapacity} GB</span>
-                  )}
-                </p>
-              </div>
-              {canCalculatePrice ? (
-                <button
-                  onClick={() => setShowLocationSelection(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl text-white font-bold shadow-lg shadow-emerald-500/25 active:scale-95 transition-all"
-                >
-                  Calculate
-                </button>
-              ) : (
-                <button
-                  onClick={() => document.getElementById('storage-selector')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="px-6 py-3 bg-slate-800 rounded-xl text-slate-400 font-medium text-sm active:scale-95 transition-all border border-slate-700"
-                >
-                  Select Storage
-                </button>
-              )}
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-20 space-y-4">
+              <StorageSelector
+                selectedType={storageType}
+                selectedCapacity={storageCapacity}
+                onTypeChange={setStorageType}
+                onCapacityChange={setStorageCapacity}
+              />
+
+              <CostSummary
+                selectedItems={selectedItems}
+                selectedLibraryPacks={selectedLibraryPacks}
+                categories={categories}
+                totalStorage={totalStorage}
+                storageType={storageType}
+                storageCapacity={storageCapacity}
+                onCalculate={() => setShowLocationSelection(true)}
+              />
             </div>
           </div>
-        </>
+        </div>
+      </div>
+
+      {/* Mobile Sticky Footer */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50 z-40">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs text-slate-400">Total Storage</p>
+            <p className="text-lg font-bold text-white">{formatStorage(totalStorage)}</p>
+          </div>
+          <button
+            onClick={() => setShowLocationSelection(true)}
+            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-xl hover:from-purple-400 hover:to-cyan-400 transition-all shadow-lg font-semibold flex items-center gap-2"
+          >
+            <Calculator className="w-4 h-4" />
+            Calculate
+          </button>
+        </div>
+      </div>
+
+      {/* Modals */}
+      {showLocationSelection && (
+        <LocationSelection
+          onClose={() => setShowLocationSelection(false)}
+          onLocationSelected={(location) => {
+            setCustomerLocation(location);
+            setShowLocationSelection(false);
+            setShowPriceCalculation(true);
+          }}
+        />
       )}
+
+      {showPriceCalculation && (() => {
+        // Convert selected IDs to actual Product objects
+        const selectedProductObjects: Product[] = [];
+        const selectedLibraryPackObjects: LibraryPack[] = [];
+
+        categories.forEach(category => {
+          category.products.forEach(product => {
+            if (selectedItems.has(product.id)) {
+              selectedProductObjects.push(product);
+
+              // Also collect selected library packs for this product
+              product.libraryPacks?.forEach(pack => {
+                if (selectedLibraryPacks.has(pack.id)) {
+                  selectedLibraryPackObjects.push(pack);
+                }
+              });
+            }
+          });
+        });
+
+        return (
+          <PriceCalculation
+            selectedProducts={selectedProductObjects}
+            selectedLibraryPacks={selectedLibraryPackObjects}
+            storageType={storageType}
+            storageCapacity={storageCapacity || 0}
+            totalStorage={totalStorage}
+            customerLocation={customerLocation}
+            onContinueToCheckout={() => {
+              setShowPriceCalculation(false);
+              setIsCheckout(true);
+            }}
+            onBack={() => setShowPriceCalculation(false)}
+          />
+        );
+      })()}
+
+      {isCheckout && (() => {
+        // Convert selected IDs to actual Product objects
+        const selectedProductObjects: Product[] = [];
+        const selectedLibraryPackObjects: LibraryPack[] = [];
+
+        categories.forEach(category => {
+          category.products.forEach(product => {
+            if (selectedItems.has(product.id)) {
+              selectedProductObjects.push(product);
+
+              // Also collect selected library packs for this product
+              product.libraryPacks?.forEach(pack => {
+                if (selectedLibraryPacks.has(pack.id)) {
+                  selectedLibraryPackObjects.push(pack);
+                }
+              });
+            }
+          });
+        });
+
+        return (
+          <Checkout
+            selectedProducts={selectedProductObjects}
+            selectedLibraryPacks={selectedLibraryPackObjects}
+            storageType={storageType}
+            storageCapacity={storageCapacity || 0}
+            totalStorage={totalStorage}
+            customerLocation={customerLocation}
+            onBack={() => setIsCheckout(false)}
+          />
+        );
+      })()}
     </div>
   );
 }

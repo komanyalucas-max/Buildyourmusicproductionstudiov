@@ -15,8 +15,8 @@ interface CheckoutProps {
 }
 
 export function Checkout({
-  selectedProducts,
-  selectedLibraryPacks,
+  selectedProducts = [],
+  selectedLibraryPacks = [],
   storageType,
   storageCapacity,
   totalStorage,
@@ -105,25 +105,25 @@ export function Checkout({
                   {product.libraryPacks && selectedLibraryPacks.some((pack) =>
                     product.libraryPacks!.some((p) => p.id === pack.id)
                   ) && (
-                    <div className="ml-6 mt-2 space-y-2">
-                      {selectedLibraryPacks
-                        .filter((pack) => product.libraryPacks!.some((p) => p.id === pack.id))
-                        .map((pack) => (
-                          <div
-                            key={pack.id}
-                            className="flex items-start justify-between p-2 bg-purple-50 rounded-lg border border-purple-100"
-                          >
-                            <div className="flex-1">
-                              <h4 className="text-sm text-slate-900">{pack.name}</h4>
-                              <p className="text-xs text-slate-600">{pack.description}</p>
+                      <div className="ml-6 mt-2 space-y-2">
+                        {selectedLibraryPacks
+                          .filter((pack) => product.libraryPacks!.some((p) => p.id === pack.id))
+                          .map((pack) => (
+                            <div
+                              key={pack.id}
+                              className="flex items-start justify-between p-2 bg-purple-50 rounded-lg border border-purple-100"
+                            >
+                              <div className="flex-1">
+                                <h4 className="text-sm text-slate-900">{pack.name}</h4>
+                                <p className="text-xs text-slate-600">{pack.description}</p>
+                              </div>
+                              <div className="text-xs text-purple-600 ml-4">
+                                {formatStorage(pack.fileSize)}
+                              </div>
                             </div>
-                            <div className="text-xs text-purple-600 ml-4">
-                              {formatStorage(pack.fileSize)}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  )}
+                          ))}
+                      </div>
+                    )}
                 </div>
               ))}
             </div>

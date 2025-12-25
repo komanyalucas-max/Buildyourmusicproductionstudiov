@@ -20,7 +20,7 @@ interface PriceCalculationProps {
 const getProductPrice = (product: Product): number => {
   // Free products cost $0
   if (product.isFree) return 0;
-  
+
   // Simple pricing based on product ID (you can customize this)
   const priceMap: Record<string, number> = {
     'reaper': 60,
@@ -38,7 +38,7 @@ const getProductPrice = (product: Product): number => {
     'loopcloud': 14.99,
     'output-arcade': 9.99,
   };
-  
+
   return priceMap[product.id] || 99;
 };
 
@@ -51,64 +51,64 @@ const getLibraryPackPrice = (pack: LibraryPack): number => {
     'kontakt-guitars': 99,
     'kontakt-strings': 299,
     'kontakt-brass': 249,
-    
+
     // Vital packs
     'vital-community-1': 0, // Free
     'vital-bass': 29,
     'vital-pads': 29,
-    
+
     // Keyscape packs
     'keyscape-vintage': 149,
     'keyscape-modern': 179,
     'keyscape-hybrid': 99,
-    
+
     // Serum packs
     'serum-bass': 49,
     'serum-edm': 49,
     'serum-fx': 39,
     'serum-vocal': 45,
-    
+
     // LABS packs
     'labs-strings': 0, // Free
     'labs-ambient': 0, // Free
     'labs-frozen': 0, // Free
-    
+
     // Valhalla packs
     'valhalla-presets-vol1': 15,
     'valhalla-vintage-collection': 20,
-    
+
     // FabFilter packs
     'fabfilter-mixing': 29,
     'fabfilter-mastering': 29,
     'fabfilter-creative': 25,
-    
+
     // Soundtoys packs
     'soundtoys-vintage': 39,
     'soundtoys-modulation': 35,
     'soundtoys-delay': 35,
-    
+
     // iZotope packs
     'izotope-genre-masters': 25,
     'izotope-loudness': 20,
-    
+
     // TDR packs
     'tdr-vocal': 0, // Free
     'tdr-drums': 0, // Free
   };
-  
+
   return priceMap[pack.id] || 49;
 };
 
 const getStoragePrice = (type: StorageType, capacity: number): number => {
   if (!type) return 0;
-  
+
   const prices: Record<string, Record<number, number>> = {
     'usb': { 32: 15, 64: 25, 128: 40 },
     'hdd': { 256: 45, 500: 60, 1000: 80, 2000: 120 },
     'sata-ssd': { 256: 50, 500: 75, 1000: 110, 2000: 200 },
     'nvme-ssd': { 256: 70, 500: 100, 1000: 150, 2000: 280 },
   };
-  
+
   return prices[type]?.[capacity] || 0;
 };
 
@@ -122,28 +122,28 @@ const getProductImage = (productId: string): string => {
     'logic-pro': 'https://images.unsplash.com/photo-1758179766251-6b4a0df3c936?w=400',
     'garageband': 'https://images.unsplash.com/photo-1758179766251-6b4a0df3c936?w=400',
     'cakewalk': 'https://images.unsplash.com/photo-1758179766251-6b4a0df3c936?w=400',
-    
+
     // Instruments
     'vital': 'https://images.unsplash.com/photo-1642784323419-89d08b21c4de?w=400',
     'keyscape': 'https://images.unsplash.com/photo-1642784323419-89d08b21c4de?w=400',
     'serum': 'https://images.unsplash.com/photo-1642784323419-89d08b21c4de?w=400',
     'kontakt': 'https://images.unsplash.com/photo-1642784323419-89d08b21c4de?w=400',
     'labs': 'https://images.unsplash.com/photo-1642784323419-89d08b21c4de?w=400',
-    
+
     // Effects
     'valhalla-vintage': 'https://images.unsplash.com/photo-1650147880756-32cff42ac2d7?w=400',
     'fabfilter-pro-q': 'https://images.unsplash.com/photo-1650147880756-32cff42ac2d7?w=400',
     'soundtoys-bundle': 'https://images.unsplash.com/photo-1650147880756-32cff42ac2d7?w=400',
     'izotope-ozone': 'https://images.unsplash.com/photo-1650147880756-32cff42ac2d7?w=400',
     'free-effects': 'https://images.unsplash.com/photo-1650147880756-32cff42ac2d7?w=400',
-    
+
     // Samples
     'splice': 'https://images.unsplash.com/photo-1631692364644-d6558eab0915?w=400',
     'loopcloud': 'https://images.unsplash.com/photo-1631692364644-d6558eab0915?w=400',
     'freesound': 'https://images.unsplash.com/photo-1631692364644-d6558eab0915?w=400',
     'output-arcade': 'https://images.unsplash.com/photo-1631692364644-d6558eab0915?w=400',
   };
-  
+
   return imageMap[productId] || 'https://images.unsplash.com/photo-1758179766251-6b4a0df3c936?w=400';
 };
 
@@ -160,7 +160,7 @@ const getLibraryPackImage = (packId: string): string => {
     // DAW screen for preset packs
     preset: 'https://images.unsplash.com/photo-1763336333573-e1f656aa3255?w=400',
   };
-  
+
   // Categorize packs by type
   if (packId.includes('vintage') || packId.includes('classic')) {
     return imageMap.vintage;
@@ -169,13 +169,13 @@ const getLibraryPackImage = (packId: string): string => {
   } else if (packId.includes('strings') || packId.includes('brass') || packId.includes('piano') || packId.includes('guitar')) {
     return imageMap.library;
   }
-  
+
   return imageMap.default;
 };
 
 export function PriceCalculation({
-  selectedProducts,
-  selectedLibraryPacks,
+  selectedProducts: selectedProductsSet,
+  selectedLibraryPacks: selectedLibraryPacksSet,
   storageType,
   storageCapacity,
   totalStorage,
@@ -187,6 +187,10 @@ export function PriceCalculation({
   const [progress, setProgress] = useState(0);
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+
+  // Convert Sets to Arrays for easier manipulation
+  const selectedProducts = Array.from(selectedProductsSet || []);
+  const selectedLibraryPacks = Array.from(selectedLibraryPacksSet || []);
 
   useEffect(() => {
     if (isCalculating) {
@@ -207,7 +211,7 @@ export function PriceCalculation({
 
   const productsTotal = selectedProducts.reduce((sum, product) => sum + getProductPrice(product), 0);
   const libraryPacksTotal = selectedLibraryPacks.reduce((sum, pack) => sum + getLibraryPackPrice(pack), 0);
-  const storagePrice = getStoragePrice(storageType, storageCapacity);
+  const storagePrice = getStoragePrice(storageType, storageCapacity || 0);
   const subtotal = productsTotal + libraryPacksTotal + storagePrice;
   const shippingCost = getShippingCost(customerLocation);
   const total = subtotal + shippingCost;
@@ -217,14 +221,14 @@ export function PriceCalculation({
       alert('Please fill in your name and email to continue');
       return;
     }
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(customerEmail)) {
       alert('Please enter a valid email address');
       return;
     }
-    
+
     // Proceed with checkout
     onContinueToCheckout();
   };
@@ -351,7 +355,7 @@ export function PriceCalculation({
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-                          
+
                           {/* FREE Badge */}
                           {product.isFree && (
                             <div className="absolute top-3 right-3 px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 backdrop-blur-sm rounded-full border border-emerald-400/50 shadow-lg">
@@ -388,7 +392,7 @@ export function PriceCalculation({
                               const packImage = getLibraryPackImage(pack.id);
                               const packPrice = getLibraryPackPrice(pack);
                               const isFree = packPrice === 0;
-                              
+
                               return (
                                 <div
                                   key={pack.id}
@@ -403,7 +407,7 @@ export function PriceCalculation({
                                         className="w-full h-full object-cover group-hover/pack:scale-110 transition-transform duration-500"
                                       />
                                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
-                                      
+
                                       {/* Free badge on thumbnail */}
                                       {isFree && (
                                         <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-emerald-500 rounded text-[10px] font-bold text-white">

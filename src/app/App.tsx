@@ -54,74 +54,74 @@ export default function App() {
         {currentView !== 'admin-dashboard' && (
           <>
             <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-xl border-b border-slate-700/50">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                  {/* Logo */}
-                  <button
-                    onClick={() => navigateTo('home')}
-                    className="flex items-center gap-2 text-white hover:text-cyan-400 transition-colors"
-                  >
-                    <div className="p-2 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-lg shadow-lg shadow-purple-500/20">
-                      <Home className="w-5 h-5" />
-                    </div>
-                    <span className="font-bold text-lg tracking-tight">Studio Builder</span>
-                  </button>
-
-                  {/* Desktop Navigation Items */}
-                  <div className="hidden md:flex items-center gap-4 lg:gap-6">
+              <div className="relative">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <div className="flex items-center h-16">
+                    {/* Logo */}
                     <button
                       onClick={() => navigateTo('home')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentView === 'home'
-                        ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
-                        }`}
+                      className="flex items-center gap-2 text-white hover:text-cyan-400 transition-colors"
                     >
-                      <Home className="w-4 h-4" />
-                      <span>Home</span>
+                      <div className="p-2 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-lg shadow-lg shadow-purple-500/20">
+                        <Home className="w-5 h-5" />
+                      </div>
+                      <span className="font-bold text-lg tracking-tight">Studio Builder</span>
                     </button>
 
-                    <button
-                      onClick={() => navigateTo('about')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentView === 'about'
-                        ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
-                        }`}
-                    >
-                      <Info className="w-4 h-4" />
-                      <span>About</span>
-                    </button>
+                    {/* Desktop Navigation Items */}
+                    <div className="hidden md:flex items-center gap-4 lg:gap-6 ml-auto">
+                      <button
+                        onClick={() => navigateTo('home')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentView === 'home'
+                          ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
+                          }`}
+                      >
+                        <Home className="w-4 h-4" />
+                        <span>Home</span>
+                      </button>
 
-                    <button
-                      onClick={() => navigateTo('contact')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentView === 'contact'
-                        ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
-                        }`}
-                    >
-                      <Mail className="w-4 h-4" />
-                      <span>Contact</span>
-                    </button>
+                      <button
+                        onClick={() => navigateTo('about')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentView === 'about'
+                          ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
+                          }`}
+                      >
+                        <Info className="w-4 h-4" />
+                        <span>About</span>
+                      </button>
 
-                    {/* Admin Dashboard Button */}
-                    <button
-                      onClick={() => navigateTo('admin-dashboard')}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/50 rounded-lg text-purple-300 hover:from-purple-500/30 hover:to-cyan-500/30 transition-all hover:shadow-lg hover:shadow-purple-500/10"
-                    >
-                      <LayoutDashboard className="w-4 h-4" />
-                      <span>Admin Dashboard</span>
-                    </button>
-                  </div>
+                      <button
+                        onClick={() => navigateTo('contact')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentView === 'contact'
+                          ? 'bg-slate-800/50 text-cyan-400 border border-slate-700/50'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800/30'
+                          }`}
+                      >
+                        <Mail className="w-4 h-4" />
+                        <span>Contact</span>
+                      </button>
 
-                  {/* Mobile Menu Button - Absolute Positioned */}
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 md:hidden z-50">
-                    <button
-                      onClick={() => setIsMobileMenuOpen(true)}
-                      className="p-2 text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700/50 backdrop-blur-sm shadow-lg"
-                    >
-                      <Menu className="w-6 h-6" />
-                    </button>
+                      {/* Admin Dashboard Button */}
+                      <button
+                        onClick={() => navigateTo('admin-dashboard')}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 border border-purple-500/50 rounded-lg text-purple-300 hover:from-purple-500/30 hover:to-cyan-500/30 transition-all hover:shadow-lg hover:shadow-purple-500/10"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        <span>Admin Dashboard</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                {/* Mobile Menu Button - Outside container for guaranteed visibility */}
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="md:hidden absolute right-4 top-1/2 -translate-y-1/2 p-2.5 text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-600 shadow-lg z-[60]"
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
               </div>
             </nav>
 
