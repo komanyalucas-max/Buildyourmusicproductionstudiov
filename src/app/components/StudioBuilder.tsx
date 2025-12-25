@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Music, Wand2, Sliders, Library, Sparkles, Calculator } from 'lucide-react';
 import { ProductSection } from './ProductSection';
 import { CostSummary } from './CostSummary';
@@ -8,6 +8,8 @@ import { PriceCalculation } from './PriceCalculation';
 import { LocationSelection } from './LocationSelection';
 import { LanguageCurrencySelector } from './LanguageCurrencySelector';
 import { useLanguage } from '../contexts/LanguageContext';
+import { kvStore } from '../../services/kvStore';
+import type { Product as DBProduct, Category as DBCategory } from '../../types';
 
 export interface LibraryPack {
   id: string;
@@ -36,369 +38,21 @@ export interface Category {
   helperText?: string;
 }
 
-const categories: Category[] = [
-  {
-    id: 'daw',
-    title: 'DAW (Where You Make Music)',
-    subtitle: 'Your main workspace for creating, recording, and arranging music',
-    icon: <Music className="w-5 h-5" />,
-    helperText: 'You usually only need one',
-    products: [
-      {
-        id: 'reaper',
-        name: 'Reaper',
-        description: 'Lightweight, affordable, and powerful for beginners',
-        fileSize: 0.3,
-      },
-      {
-        id: 'fl-studio',
-        name: 'FL Studio',
-        description: 'Popular for electronic music and beats',
-        fileSize: 4.5,
-      },
-      {
-        id: 'ableton-live',
-        name: 'Ableton Live Standard',
-        description: 'Great for live performance and electronic music',
-        fileSize: 3.2,
-      },
-      {
-        id: 'logic-pro',
-        name: 'Logic Pro (Mac only)',
-        description: 'Professional DAW with tons of built-in sounds',
-        fileSize: 6.8,
-      },
-      {
-        id: 'garageband',
-        name: 'GarageBand (Mac/iOS)',
-        description: 'Simple and free, perfect for starting out',
-        fileSize: 2.1,
-        isFree: true,
-      },
-      {
-        id: 'cakewalk',
-        name: 'Cakewalk by BandLab',
-        description: 'Full-featured free DAW for Windows',
-        fileSize: 1.8,
-        isFree: true,
-      },
-    ],
-  },
-  {
-    id: 'instruments',
-    title: 'Instruments (Sound Makers)',
-    subtitle: 'Virtual instruments to create melodies, beats, and bass lines',
-    icon: <Wand2 className="w-5 h-5" />,
-    products: [
-      {
-        id: 'vital',
-        name: 'Vital',
-        description: 'Modern synth with beautiful interface, free version available',
-        fileSize: 0.4,
-        isFree: true,
-        libraryPacks: [
-          {
-            id: 'vital-community-1',
-            name: 'Community Presets Vol. 1',
-            description: 'User-created preset pack for diverse sounds',
-            fileSize: 0.2,
-          },
-          {
-            id: 'vital-bass',
-            name: 'Bass Collection',
-            description: 'Deep bass presets for electronic music',
-            fileSize: 0.15,
-          },
-          {
-            id: 'vital-pads',
-            name: 'Atmospheric Pads',
-            description: 'Lush pad sounds for ambient production',
-            fileSize: 0.18,
-          },
-        ],
-      },
-      {
-        id: 'keyscape',
-        name: 'Keyscape',
-        description: 'Realistic piano and keyboard sounds',
-        fileSize: 77,
-        libraryPacks: [
-          {
-            id: 'keyscape-vintage',
-            name: 'Vintage Keyboards',
-            description: 'Classic Rhodes, Wurlitzer, and Clavinet',
-            fileSize: 28.5,
-          },
-          {
-            id: 'keyscape-modern',
-            name: 'Modern Pianos',
-            description: 'Contemporary grand and upright pianos',
-            fileSize: 35.2,
-          },
-          {
-            id: 'keyscape-hybrid',
-            name: 'Hybrid & Cinematic',
-            description: 'Processed and designed piano sounds',
-            fileSize: 18.7,
-          },
-        ],
-      },
-      {
-        id: 'serum',
-        name: 'Serum',
-        description: 'Industry-standard wavetable synth',
-        fileSize: 0.3,
-        libraryPacks: [
-          {
-            id: 'serum-bass',
-            name: 'Bass Masterclass',
-            description: 'Professional bass presets for all genres',
-            fileSize: 0.4,
-          },
-          {
-            id: 'serum-edm',
-            name: 'EDM Essentials',
-            description: 'Leads, plucks, and pads for dance music',
-            fileSize: 0.5,
-          },
-          {
-            id: 'serum-fx',
-            name: 'Sound Effects Library',
-            description: 'Risers, impacts, and transitions',
-            fileSize: 0.3,
-          },
-          {
-            id: 'serum-vocal',
-            name: 'Vocal Chops & Textures',
-            description: 'Processed vocal sounds and chops',
-            fileSize: 0.35,
-          },
-        ],
-      },
-      {
-        id: 'kontakt',
-        name: 'Kontakt 7',
-        description: 'Sampler platform with huge library',
-        fileSize: 42,
-        libraryPacks: [
-          {
-            id: 'kontakt-yamaha',
-            name: 'Yamaha C7 Grand Piano',
-            description: 'Premium sampled Yamaha concert grand',
-            fileSize: 18.5,
-          },
-          {
-            id: 'kontakt-damage',
-            name: 'Damage',
-            description: 'Epic drums and percussion for cinematic tracks',
-            fileSize: 24.2,
-          },
-          {
-            id: 'kontakt-guitars',
-            name: 'Session Guitarist',
-            description: 'Acoustic and electric guitar phrases',
-            fileSize: 15.7,
-          },
-          {
-            id: 'kontakt-strings',
-            name: 'Session Strings',
-            description: 'Professional orchestral string ensemble',
-            fileSize: 32.4,
-          },
-          {
-            id: 'kontakt-brass',
-            name: 'Session Brass',
-            description: 'Dynamic brass section for any style',
-            fileSize: 22.8,
-          },
-        ],
-      },
-      {
-        id: 'labs',
-        name: 'Spitfire LABS',
-        description: 'Free collection of beautiful instrument sounds',
-        fileSize: 3.5,
-        isFree: true,
-        libraryPacks: [
-          {
-            id: 'labs-strings',
-            name: 'Soft Piano & Strings',
-            description: 'Gentle orchestral textures',
-            fileSize: 2.1,
-          },
-          {
-            id: 'labs-ambient',
-            name: 'Ambient Pads',
-            description: 'Ethereal soundscapes and textures',
-            fileSize: 1.8,
-          },
-          {
-            id: 'labs-frozen',
-            name: 'Frozen Strings',
-            description: 'Icy and atmospheric string sounds',
-            fileSize: 2.3,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'effects',
-    title: 'Effects & Audio Tools (Sound Shapers)',
-    subtitle: 'Tools to polish, shape, and enhance your sounds',
-    icon: <Sliders className="w-5 h-5" />,
-    products: [
-      {
-        id: 'valhalla-vintage',
-        name: 'Valhalla Vintage Verb',
-        description: 'Beautiful reverb plugin, very popular',
-        fileSize: 0.05,
-        libraryPacks: [
-          {
-            id: 'valhalla-presets-vol1',
-            name: 'Producer Presets Vol. 1',
-            description: 'Curated reverb presets from top producers',
-            fileSize: 0.02,
-          },
-          {
-            id: 'valhalla-vintage-collection',
-            name: 'Vintage Spaces',
-            description: 'Classic reverb algorithms and settings',
-            fileSize: 0.03,
-          },
-        ],
-      },
-      {
-        id: 'fabfilter-pro-q',
-        name: 'FabFilter Pro-Q 3',
-        description: 'Professional EQ for precision sound shaping',
-        fileSize: 0.1,
-        libraryPacks: [
-          {
-            id: 'fabfilter-mixing',
-            name: 'Mixing Presets Pack',
-            description: 'Starting points for vocals, drums, and instruments',
-            fileSize: 0.05,
-          },
-          {
-            id: 'fabfilter-mastering',
-            name: 'Mastering Templates',
-            description: 'Professional mastering EQ chains',
-            fileSize: 0.04,
-          },
-          {
-            id: 'fabfilter-creative',
-            name: 'Creative FX',
-            description: 'Unique sound design and effects',
-            fileSize: 0.03,
-          },
-        ],
-      },
-      {
-        id: 'soundtoys-bundle',
-        name: 'Soundtoys 5',
-        description: 'Creative effects bundle for character and color',
-        fileSize: 1.2,
-        libraryPacks: [
-          {
-            id: 'soundtoys-vintage',
-            name: 'Vintage Character Pack',
-            description: 'Analog-style warmth and saturation presets',
-            fileSize: 0.3,
-          },
-          {
-            id: 'soundtoys-modulation',
-            name: 'Modulation Suite',
-            description: 'Chorus, flanger, and phaser presets',
-            fileSize: 0.25,
-          },
-          {
-            id: 'soundtoys-delay',
-            name: 'Delay & Echo Collection',
-            description: 'Creative delay and echo settings',
-            fileSize: 0.28,
-          },
-        ],
-      },
-      {
-        id: 'izotope-ozone',
-        name: 'iZotope Ozone Elements',
-        description: 'AI-powered mastering assistant',
-        fileSize: 0.8,
-        libraryPacks: [
-          {
-            id: 'izotope-genre-masters',
-            name: 'Genre Mastering Presets',
-            description: 'Optimized settings for different music styles',
-            fileSize: 0.15,
-          },
-          {
-            id: 'izotope-loudness',
-            name: 'Loudness Templates',
-            description: 'Streaming platform ready masters',
-            fileSize: 0.12,
-          },
-        ],
-      },
-      {
-        id: 'free-effects',
-        name: 'TDR Nova (Free)',
-        description: 'Professional-quality free dynamic EQ',
-        fileSize: 0.02,
-        isFree: true,
-        libraryPacks: [
-          {
-            id: 'tdr-vocal',
-            name: 'Vocal Processing',
-            description: 'Ready-to-use vocal EQ presets',
-            fileSize: 0.01,
-          },
-          {
-            id: 'tdr-drums',
-            name: 'Drum Shaping',
-            description: 'Punchy drum and percussion settings',
-            fileSize: 0.01,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'samples',
-    title: 'Samples & Creative Tools',
-    subtitle: 'Pre-made sounds, loops, and one-shot samples for inspiration',
-    icon: <Library className="w-5 h-5" />,
-    products: [
-      {
-        id: 'splice',
-        name: 'Splice Sounds',
-        description: 'Huge library of royalty-free samples and loops',
-        fileSize: 15,
-      },
-      {
-        id: 'loopcloud',
-        name: 'Loopcloud',
-        description: 'Sample browser and manager with AI features',
-        fileSize: 8,
-      },
-      {
-        id: 'freesound',
-        name: 'Freesound.org',
-        description: 'Community-driven free sound library',
-        fileSize: 0.1,
-        isFree: true,
-      },
-      {
-        id: 'output-arcade',
-        name: 'Output Arcade',
-        description: 'Loop and kit player with fresh content monthly',
-        fileSize: 12,
-      },
-    ],
-  },
-];
+// Icon mapping for categories
+const getIconForCategory = (iconName?: string) => {
+  const iconMap: Record<string, React.ReactNode> = {
+    'Music': <Music className="w-5 h-5" />,
+    'Wand2': <Wand2 className="w-5 h-5" />,
+    'Sliders': <Sliders className="w-5 h-5" />,
+    'Library': <Library className="w-5 h-5" />,
+  };
+  return iconMap[iconName || 'Library'] || <Library className="w-5 h-5" />;
+};
 
 export function StudioBuilder() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [selectedLibraryPacks, setSelectedLibraryPacks] = useState<Set<string>>(new Set());
   const [storageType, setStorageType] = useState<StorageType>(null);
@@ -408,6 +62,58 @@ export function StudioBuilder() {
   const [showPriceCalculation, setShowPriceCalculation] = useState(false);
   const [isCheckout, setIsCheckout] = useState(false);
   const { t } = useLanguage();
+
+  // Fetch categories and products from database
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const [categoriesData, productsData] = await Promise.all([
+          kvStore.listByPrefix<DBCategory>('category:'),
+          kvStore.listByPrefix<DBProduct>('product:')
+        ]);
+
+        // Transform database data to UI format
+        const dbCategories = categoriesData.map(c => c.value).sort((a, b) => a.order - b.order);
+        const dbProducts = productsData.map(p => p.value);
+
+        // Group products by category
+        const transformedCategories: Category[] = dbCategories.map(cat => {
+          const categoryProducts = dbProducts
+            .filter(p => p.category_id === cat.id)
+            .map(p => ({
+              id: p.id,
+              name: p.name,
+              description: p.description,
+              fileSize: p.file_size,
+              isFree: p.is_free,
+              libraryPacks: [], // TODO: Add library packs support from database
+              image: undefined
+            }));
+
+          return {
+            id: cat.id,
+            title: cat.name,
+            subtitle: cat.description,
+            icon: getIconForCategory(cat.icon),
+            products: categoryProducts,
+            helperText: cat.helper_text || undefined
+          };
+        });
+
+        setCategories(transformedCategories);
+      } catch (err) {
+        console.error('Failed to load data:', err);
+        setError('Failed to load products. Please try refreshing the page.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const toggleItem = (productId: string) => {
     setSelectedItems((prev) => {
@@ -475,9 +181,9 @@ export function StudioBuilder() {
     return storage;
   }, [selectedItems, selectedLibraryPacks]);
 
-  const canCalculatePrice = 
-    selectedItems.size > 0 && 
-    storageType !== null && 
+  const canCalculatePrice =
+    selectedItems.size > 0 &&
+    storageType !== null &&
     storageCapacity !== null &&
     storageCapacity >= totalStorage;
 
@@ -552,7 +258,7 @@ export function StudioBuilder() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 md:py-12">
       {/* Animated background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
@@ -560,84 +266,144 @@ export function StudioBuilder() {
         <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
-      {/* Language & Currency Selector - Top Right */}
-      <div className="flex justify-end mb-6 relative z-10">
-        <LanguageCurrencySelector />
-      </div>
-
-      {/* Header */}
-      <div className="text-center mb-12 relative z-10">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-full mb-6">
-          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-          <span className="text-cyan-300 text-sm">AI-Powered Studio Builder</span>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] relative z-10">
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-300 text-lg">Loading products...</p>
         </div>
-        <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">
-          {t('app.title')}
-        </h1>
-        <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-          {t('app.subtitle')}
-        </p>
-      </div>
+      )}
 
-      {/* Free Starter Button */}
-      <div className="mb-12 flex justify-center relative z-10">
-        <button
-          onClick={selectFreeStudio}
-          className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl hover:from-cyan-400 hover:to-purple-500 transition-all shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/70 hover:scale-105"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-          <Sparkles className="w-6 h-6 text-white relative z-10" />
-          <span className="text-white font-semibold relative z-10">Free Starter Studio</span>
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-pink-400 rounded-full animate-ping" />
-        </button>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-8 relative z-10">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {categories.map((category) => (
-            <ProductSection
-              key={category.id}
-              category={category}
-              selectedItems={selectedItems}
-              onToggleItem={toggleItem}
-              selectedLibraryPacks={selectedLibraryPacks}
-              onToggleLibraryPack={toggleLibraryPack}
-            />
-          ))}
-        </div>
-
-        {/* Sidebar - Storage Selection & Summary */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-6 space-y-6">
-            <StorageSelector
-              selectedType={storageType}
-              selectedCapacity={storageCapacity}
-              onTypeChange={setStorageType}
-              onCapacityChange={setStorageCapacity}
-            />
-            <CostSummary 
-              totalStorage={totalStorage}
-              storageCapacity={storageCapacity}
-              storageType={storageType}
-            />
-
-            {/* Calculate Price Button */}
-            {canCalculatePrice && (
-              <button
-                onClick={() => setShowLocationSelection(true)}
-                className="group relative w-full py-5 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl hover:from-emerald-400 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/70 hover:scale-105"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-                <div className="relative z-10 flex items-center justify-center gap-3">
-                  <Calculator className="w-6 h-6 text-white" />
-                  <span className="text-white font-semibold text-lg">Calculate Price</span>
-                </div>
-              </button>
-            )}
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] relative z-10">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 max-w-md text-center">
+            <p className="text-red-300 text-lg mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+            >
+              Retry
+            </button>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Main Content - Only show when not loading and no error */}
+      {!isLoading && !error && (
+        <>
+          {/* Compact Header */}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6 relative z-10 border-b border-slate-700/30 pb-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="inline-flex items-center gap-2 px-2 py-0.5 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 backdrop-blur-sm border border-cyan-500/20 rounded-full">
+                  <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                  <span className="text-cyan-300 text-[10px] font-medium tracking-wide uppercase">AI-Powered Studio</span>
+                </div>
+              </div>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
+                {t('app.title')}
+              </h1>
+              <p className="text-slate-400 text-xs md:text-sm hidden sm:block max-w-xl text-balance">
+                {t('app.subtitle')}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 self-end lg:self-center">
+              <button
+                onClick={selectFreeStudio}
+                className="group relative inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-xl hover:from-cyan-400 hover:to-purple-500 transition-all shadow-lg shadow-purple-500/20 active:scale-95"
+              >
+                <Sparkles className="w-4 h-4 text-white" />
+                <span className="text-white font-semibold text-sm">Free Starter</span>
+              </button>
+              <LanguageCurrencySelector />
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-8 relative z-10">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-4">
+              {categories.map((category, index) => (
+                <ProductSection
+                  key={category.id}
+                  category={category}
+                  selectedItems={selectedItems}
+                  onToggleItem={toggleItem}
+                  selectedLibraryPacks={selectedLibraryPacks}
+                  onToggleLibraryPack={toggleLibraryPack}
+                  defaultExpanded={index === 0}
+                />
+              ))}
+            </div>
+
+            {/* Sidebar - Storage Selection & Summary */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-6 space-y-6">
+                <div id="storage-selector">
+                  <StorageSelector
+                    selectedType={storageType}
+                    selectedCapacity={storageCapacity}
+                    onTypeChange={setStorageType}
+                    onCapacityChange={setStorageCapacity}
+                  />
+                </div>
+                <CostSummary
+                  totalStorage={totalStorage}
+                  storageCapacity={storageCapacity}
+                  storageType={storageType}
+                />
+
+                {/* Calculate Price Button */}
+                {canCalculatePrice && (
+                  <button
+                    onClick={() => setShowLocationSelection(true)}
+                    className="group relative w-full py-5 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl hover:from-emerald-400 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/70 hover:scale-105"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
+                    <div className="relative z-10 flex items-center justify-center gap-3">
+                      <Calculator className="w-6 h-6 text-white" />
+                      <span className="text-white font-semibold text-lg">Calculate Price</span>
+                    </div>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Sticky Action Bar */}
+          <div className="lg:hidden fixed bottom-6 left-4 right-4 p-4 bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl shadow-black/50 z-50 animate-in slide-in-from-bottom-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-xs text-slate-400 mb-1">Total Storage</p>
+                <p className="text-lg font-bold text-white flex items-center gap-2">
+                  <span className={storageCapacity && totalStorage > storageCapacity ? 'text-red-400' : 'text-cyan-400'}>
+                    {totalStorage < 1 ? (totalStorage * 1024).toFixed(0) + ' MB' : totalStorage.toFixed(1) + ' GB'}
+                  </span>
+                  {storageCapacity && (
+                    <span className="text-sm text-slate-500 font-normal">/ {storageCapacity} GB</span>
+                  )}
+                </p>
+              </div>
+              {canCalculatePrice ? (
+                <button
+                  onClick={() => setShowLocationSelection(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl text-white font-bold shadow-lg shadow-emerald-500/25 active:scale-95 transition-all"
+                >
+                  Calculate
+                </button>
+              ) : (
+                <button
+                  onClick={() => document.getElementById('storage-selector')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="px-6 py-3 bg-slate-800 rounded-xl text-slate-400 font-medium text-sm active:scale-95 transition-all border border-slate-700"
+                >
+                  Select Storage
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
