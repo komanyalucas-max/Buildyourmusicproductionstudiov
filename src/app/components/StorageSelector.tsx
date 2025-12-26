@@ -69,27 +69,27 @@ export function StorageSelector({
   const currentTypeData = storageTypes.find((t) => t.id === selectedType);
 
   return (
-    <div className="relative bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-2xl md:rounded-3xl border border-slate-700/50 overflow-hidden shadow-xl">
+    <div className="relative bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-xl rounded-3xl border border-slate-700/50 overflow-hidden shadow-xl">
       {/* Decorative gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-
-      <div className="relative p-4 md:p-6">
-        <div className="mb-4 md:mb-6">
-          <div className="flex items-center gap-2 md:gap-3 mb-2">
-            <div className="p-1.5 md:p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-lg md:rounded-xl border border-blue-500/30 flex-shrink-0">
-              <HardDrive className="w-4 h-4 md:w-5 md:h-5 text-blue-300" />
+      
+      <div className="relative p-6">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm rounded-xl border border-blue-500/30">
+              <HardDrive className="w-5 h-5 text-blue-300" />
             </div>
-            <h2 className="text-white text-sm md:text-base font-semibold">Choose Storage</h2>
+            <h2 className="text-white">Choose Your Storage Device</h2>
           </div>
-          <p className="text-slate-400 text-xs md:text-sm leading-relaxed">
+          <p className="text-slate-400">
             Select the type and capacity of storage for your music production tools
           </p>
         </div>
 
         {/* Storage Type Selection */}
-        <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
-          <label className="block text-slate-300 text-xs md:text-sm font-medium">Storage Type</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+        <div className="space-y-3 mb-6">
+          <label className="block text-slate-300 text-sm">Storage Type</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {storageTypes.map((type) => {
               const Icon = type.icon;
               const isSelected = selectedType === type.id;
@@ -97,39 +97,43 @@ export function StorageSelector({
                 <button
                   key={type.id}
                   onClick={() => onTypeChange(type.id)}
-                  className={`group relative w-full p-3 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all text-left overflow-hidden ${isSelected
-                    ? 'bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border-purple-500/50 shadow-lg shadow-purple-500/20'
-                    : 'bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50 hover:bg-slate-800/70'
-                    }`}
+                  className={`group relative p-4 rounded-2xl border-2 transition-all text-left overflow-hidden ${
+                    isSelected
+                      ? 'bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border-purple-500/50 shadow-lg shadow-purple-500/20'
+                      : 'bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50 hover:bg-slate-800/70'
+                  }`}
                 >
                   <div className="relative">
                     {/* Icon */}
-                    <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
+                    <div className="flex items-center gap-3 mb-2">
                       <div
-                        className={`p-2 md:p-2.5 rounded-lg md:rounded-xl transition-all flex-shrink-0 ${isSelected
-                          ? `bg-gradient-to-br ${type.color} shadow-lg`
-                          : 'bg-slate-700/50 group-hover:bg-slate-700'
-                          }`}
+                        className={`p-2.5 rounded-xl transition-all ${
+                          isSelected 
+                            ? `bg-gradient-to-br ${type.color} shadow-lg` 
+                            : 'bg-slate-700/50 group-hover:bg-slate-700'
+                        }`}
                       >
-                        <Icon className={`w-4 h-4 md:w-5 md:h-5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                        <Icon className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className={`text-xs md:text-sm transition-colors font-medium truncate ${isSelected ? 'text-white' : 'text-slate-300'
-                          }`}>
+                      <div>
+                        <h3 className={`text-sm transition-colors ${
+                          isSelected ? 'text-white' : 'text-slate-300'
+                        }`}>
                           {type.name}
                         </h3>
                       </div>
                     </div>
-
+                    
                     {/* Description */}
-                    <p className={`text-xs transition-colors ml-10 md:ml-12 line-clamp-1 ${isSelected ? 'text-slate-300' : 'text-slate-500'
-                      }`}>
+                    <p className={`text-xs transition-colors ml-12 ${
+                      isSelected ? 'text-slate-300' : 'text-slate-500'
+                    }`}>
                       {type.description}
                     </p>
 
                     {/* Visual indicator for selected */}
                     {isSelected && (
-                      <div className="mt-2 md:mt-3 ml-10 md:ml-12 flex items-center gap-2">
+                      <div className="mt-3 ml-12 flex items-center gap-2">
                         <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${type.color} animate-pulse`} />
                         <span className="text-xs text-purple-300">Selected</span>
                       </div>
@@ -143,23 +147,25 @@ export function StorageSelector({
 
         {/* Capacity Selection */}
         {selectedType && currentTypeData && (
-          <div className="space-y-2 md:space-y-3 animate-in slide-in-from-top-2 duration-300">
-            <label className="block text-slate-300 text-xs md:text-sm font-medium">Storage Capacity</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
+          <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
+            <label className="block text-slate-300 text-sm">Storage Capacity</label>
+            <div className="grid grid-cols-2 gap-3">
               {currentTypeData.capacities.map((capacity) => {
                 const isSelected = selectedCapacity === capacity;
                 return (
                   <button
                     key={capacity}
                     onClick={() => onCapacityChange(capacity)}
-                    className={`relative w-full p-3 md:p-4 rounded-lg md:rounded-xl border-2 transition-all overflow-hidden group ${isSelected
-                      ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500/50 shadow-lg shadow-cyan-500/20'
-                      : 'bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50 hover:bg-slate-800/70'
-                      }`}
+                    className={`relative p-4 rounded-xl border-2 transition-all overflow-hidden group ${
+                      isSelected
+                        ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500/50 shadow-lg shadow-cyan-500/20'
+                        : 'bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50 hover:bg-slate-800/70'
+                    }`}
                   >
                     <div className="text-center relative">
-                      <div className={`font-semibold text-sm md:text-base transition-colors truncate ${isSelected ? 'text-white' : 'text-slate-300'
-                        }`}>
+                      <div className={`font-semibold transition-colors ${
+                        isSelected ? 'text-white' : 'text-slate-300'
+                      }`}>
                         {capacity >= 1000 ? `${capacity / 1000} TB` : `${capacity} GB`}
                       </div>
                       {isSelected && (

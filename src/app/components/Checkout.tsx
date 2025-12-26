@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ArrowLeft, Package, HardDrive, MapPin, User, CreditCard, Music } from 'lucide-react';
+import { ArrowLeft, Package, HardDrive, MapPin, User, CreditCard } from 'lucide-react';
 import { Product, LibraryPack } from './StudioBuilder';
 import { StorageType } from './StorageSelector';
+import { getShippingCost } from './LocationSelection';
 
 interface CheckoutProps {
   selectedProducts: Product[];
@@ -10,26 +11,19 @@ interface CheckoutProps {
   storageCapacity: number;
   totalStorage: number;
   customerLocation: string;
-  customerName: string;
-  customerEmail: string;
-  totalAmount: number;
   onBack: () => void;
-  onPaymentStart: () => void;
 }
 
 export function Checkout({
-  selectedProducts = [],
-  selectedLibraryPacks = [],
+  selectedProducts,
+  selectedLibraryPacks,
   storageType,
   storageCapacity,
   totalStorage,
   customerLocation,
-  customerName,
-  customerEmail,
-  totalAmount,
   onBack,
-  onPaymentStart,
 }: CheckoutProps) {
+  const [customerName, setCustomerName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const formatStorage = (gb: number) => {
@@ -55,214 +49,192 @@ export function Checkout({
   };
 
   const handlePayment = () => {
+    if (!customerName.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
     setIsProcessing(true);
-    onPaymentStart();
-    setTimeout(() => setIsProcessing(false), 1000);
+    // Simulate payment processing
+    setTimeout(() => {
+      setIsProcessing(false);
+      alert('Order placed successfully! Thank you for your purchase.');
+      onBack();
+    }, 2000);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-        {/* Header with Branding */}
-        <div className="mb-6 sm:mb-8">
-          <button
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-4 transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="text-sm sm:text-base">Back to Order Details</span>
-          </button>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Header */}
+      <div className="mb-8">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Studio Builder
+        </button>
+        <h1 className="text-slate-900 mb-2">Checkout</h1>
+        <p className="text-slate-600">Review your order and complete your purchase</p>
+      </div>
 
-          {/* Brand Header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl">
-              <Music className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                AK23 Studio Kits
-              </h1>
-              <p className="text-slate-400 text-sm sm:text-base">Professional Music Production Tools</p>
-            </div>
-          </div>
-
-          <div className="h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent mb-6" />
-
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Review Your Order</h2>
-          <p className="text-slate-400 text-sm sm:text-base">Please confirm your details before payment</p>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {/* Order Summary - Mobile First */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Selected Products */}
-            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/20 p-4 sm:p-6">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="p-2 bg-gradient-to-br from-purple-500/20 to-blue-500/20 text-purple-400 rounded-lg">
-                  <Package className="w-4 h-4 sm:w-5 sm:h-5" />
-                </div>
-                <h3 className="text-lg sm:text-xl font-bold text-white">Selected Products</h3>
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* Order Summary */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Selected Products */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                <Package className="w-5 h-5" />
               </div>
+              <h2 className="text-slate-900">Selected Products</h2>
+            </div>
 
-              <div className="space-y-3">
-                {selectedProducts.map((product) => (
-                  <div key={product.id}>
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between p-3 sm:p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-purple-500/30 transition-colors">
-                      <div className="flex-1 mb-2 sm:mb-0">
-                        <h4 className="text-white font-medium text-sm sm:text-base mb-1">{product.name}</h4>
-                        <p className="text-xs sm:text-sm text-slate-400 line-clamp-2">{product.description}</p>
-                      </div>
-                      <div className="text-xs sm:text-sm text-purple-400 font-medium sm:ml-4">
-                        {formatStorage(product.fileSize)}
-                      </div>
+            <div className="space-y-3">
+              {selectedProducts.map((product) => (
+                <div key={product.id}>
+                  <div className="flex items-start justify-between p-3 bg-slate-50 rounded-lg">
+                    <div className="flex-1">
+                      <h3 className="text-slate-900">{product.name}</h3>
+                      <p className="text-sm text-slate-600">{product.description}</p>
                     </div>
-
-                    {/* Library Packs */}
-                    {product.libraryPacks && selectedLibraryPacks.some((pack) =>
-                      product.libraryPacks!.some((p) => p.id === pack.id)
-                    ) && (
-                        <div className="ml-3 sm:ml-6 mt-2 space-y-2">
-                          {selectedLibraryPacks
-                            .filter((pack) => product.libraryPacks!.some((p) => p.id === pack.id))
-                            .map((pack) => (
-                              <div
-                                key={pack.id}
-                                className="flex flex-col sm:flex-row sm:items-start sm:justify-between p-2 sm:p-3 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-lg border border-purple-500/20"
-                              >
-                                <div className="flex-1 mb-1 sm:mb-0">
-                                  <h5 className="text-xs sm:text-sm text-white font-medium">{pack.name}</h5>
-                                  <p className="text-xs text-slate-400 line-clamp-1">{pack.description}</p>
-                                </div>
-                                <div className="text-xs text-purple-400 sm:ml-4">
-                                  {formatStorage(pack.fileSize)}
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      )}
+                    <div className="text-sm text-blue-600 ml-4">{formatStorage(product.fileSize)}</div>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Storage Device */}
-            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-blue-500/20 p-4 sm:p-6">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="p-2 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 text-blue-400 rounded-lg">
-                  <HardDrive className="w-4 h-4 sm:w-5 sm:h-5" />
-                </div>
-                <h3 className="text-lg sm:text-xl font-bold text-white">Storage Device</h3>
-              </div>
-
-              <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-white font-medium text-sm sm:text-base">{getStorageTypeName()}</h4>
-                  <span className="text-blue-400 font-bold text-sm sm:text-base">
-                    {storageCapacity >= 1000 ? `${storageCapacity / 1000} TB` : `${storageCapacity} GB`}
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-400">
-                  Total storage needed: {formatStorage(totalStorage)}
-                </p>
-              </div>
-            </div>
-
-            {/* Customer Information */}
-            <div className="bg-slate-900/50 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-500/20 p-4 sm:p-6">
-              <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                <div className="p-2 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 text-emerald-400 rounded-lg">
-                  <User className="w-4 h-4 sm:w-5 sm:h-5" />
-                </div>
-                <h3 className="text-lg sm:text-xl font-bold text-white">Customer Information</h3>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-slate-400 text-xs sm:text-sm mb-2">Full Name</label>
-                    <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 text-white font-medium text-sm sm:text-base">
-                      {customerName}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-slate-400 text-xs sm:text-sm mb-2">Email Address</label>
-                    <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 text-white font-medium text-sm sm:text-base truncate">
-                      {customerEmail}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 text-xs sm:text-sm mb-2">Delivery Location</label>
-                  <div className="p-3 bg-gradient-to-r from-emerald-900/20 to-teal-900/20 rounded-lg border border-emerald-500/30 flex items-center gap-2 text-emerald-300 font-medium text-sm sm:text-base">
-                    <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    <span className="truncate">{customerLocation}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar - Order Total & Payment - Sticky on Desktop */}
-          <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-6">
-              <div className="bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 backdrop-blur-xl rounded-2xl shadow-2xl border border-purple-500/30 p-4 sm:p-6">
-                {/* Brand Badge */}
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-full border border-purple-500/30 mb-4">
-                    <Music className="w-4 h-4 text-purple-400" />
-                    <span className="text-sm font-medium text-purple-300">AK23 Studio Kits</span>
-                  </div>
-                </div>
-
-                <h3 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Order Summary</h3>
-
-                <div className="space-y-3 sm:space-y-4 mb-6">
-                  <div className="flex justify-between text-slate-300 text-sm sm:text-base">
-                    <span>Products</span>
-                    <span className="font-medium">{selectedProducts.length} items</span>
-                  </div>
-                  {selectedLibraryPacks.length > 0 && (
-                    <div className="flex justify-between text-slate-300 text-sm sm:text-base">
-                      <span>Library Packs</span>
-                      <span className="font-medium">{selectedLibraryPacks.length} packs</span>
+                  {/* Library Packs for this product */}
+                  {product.libraryPacks && selectedLibraryPacks.some((pack) =>
+                    product.libraryPacks!.some((p) => p.id === pack.id)
+                  ) && (
+                    <div className="ml-6 mt-2 space-y-2">
+                      {selectedLibraryPacks
+                        .filter((pack) => product.libraryPacks!.some((p) => p.id === pack.id))
+                        .map((pack) => (
+                          <div
+                            key={pack.id}
+                            className="flex items-start justify-between p-2 bg-purple-50 rounded-lg border border-purple-100"
+                          >
+                            <div className="flex-1">
+                              <h4 className="text-sm text-slate-900">{pack.name}</h4>
+                              <p className="text-xs text-slate-600">{pack.description}</p>
+                            </div>
+                            <div className="text-xs text-purple-600 ml-4">
+                              {formatStorage(pack.fileSize)}
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   )}
-                  <div className="flex justify-between text-slate-300 text-sm sm:text-base">
-                    <span>Storage Device</span>
-                    <span className="font-medium">1 unit</span>
-                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-                  <div className="h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent my-4" />
+          {/* Storage Device */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <HardDrive className="w-5 h-5" />
+              </div>
+              <h2 className="text-slate-900">Storage Device</h2>
+            </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-white font-medium text-sm sm:text-base">Total Amount</span>
-                    <span className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                      ${totalAmount.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-400 text-center">
-                    Includes shipping to {customerLocation}
+            <div className="p-4 bg-slate-50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-slate-900">{getStorageTypeName()}</h3>
+                <span className="text-blue-600">
+                  {storageCapacity >= 1000 ? `${storageCapacity / 1000} TB` : `${storageCapacity} GB`}
+                </span>
+              </div>
+              <p className="text-sm text-slate-600">
+                Total storage needed: {formatStorage(totalStorage)}
+              </p>
+            </div>
+          </div>
+
+          {/* Customer Information */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                <User className="w-5 h-5" />
+              </div>
+              <h2 className="text-slate-900">Customer Information</h2>
+            </div>
+
+            <div className="space-y-4">
+              {/* Name Input */}
+              <div>
+                <label htmlFor="name" className="block text-slate-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Delivery Location */}
+              <div>
+                <label htmlFor="location" className="block text-slate-700 mb-2">
+                  Delivery Location
+                </label>
+                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-emerald-600" />
+                    <span className="text-slate-900">{customerLocation}</span>
                   </div>
                 </div>
-
-                {/* Pay Button */}
-                <button
-                  onClick={handlePayment}
-                  disabled={isProcessing}
-                  className="w-full py-3 sm:py-4 px-6 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-500 hover:via-pink-500 hover:to-blue-500 text-white rounded-xl transition-all shadow-lg shadow-purple-900/50 hover:shadow-purple-900/70 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-bold text-sm sm:text-base"
-                >
-                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {isProcessing ? 'Processing...' : 'Complete Payment'}
-                </button>
-
-                <p className="text-xs text-slate-500 text-center mt-4">
-                  🔒 Secure payment powered by Pesapal
-                </p>
-                <p className="text-xs text-slate-600 text-center mt-2">
-                  By completing your order, you agree to our terms of service
-                </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar - Order Total & Payment */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-slate-900 mb-6">Order Summary</h2>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between text-slate-600">
+                  <span>Products</span>
+                  <span>{selectedProducts.length} items</span>
+                </div>
+                {selectedLibraryPacks.length > 0 && (
+                  <div className="flex justify-between text-slate-600">
+                    <span>Library Packs</span>
+                    <span>{selectedLibraryPacks.length} packs</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-slate-600">
+                  <span>Storage Device</span>
+                  <span>1 unit</span>
+                </div>
+                <div className="border-t border-slate-200 pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-slate-900">Total Storage</span>
+                    <span className="text-slate-900">{formatStorage(totalStorage)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pay Button */}
+              <button
+                onClick={handlePayment}
+                disabled={isProcessing || !customerName.trim()}
+                className="w-full py-4 px-6 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <CreditCard className="w-5 h-5" />
+                {isProcessing ? 'Processing...' : 'Complete Order'}
+              </button>
+
+              <p className="text-xs text-slate-500 text-center mt-4">
+                By completing your order, you agree to our terms of service
+              </p>
             </div>
           </div>
         </div>
